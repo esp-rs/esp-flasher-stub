@@ -22,7 +22,7 @@ mod stub
     // use heapless::Vec;
     use core::mem;
     
-    #[derive(PartialEq, Copy, Clone)]
+    #[derive(PartialEq, Copy, Clone, Debug)]
     pub enum CommandType
     {
         FlashBegin = 0x02,
@@ -59,7 +59,7 @@ mod stub
         Deflate = 0xB,
     }
 
-    // #[derive(PartialEq, Copy, Clone)]
+    #[derive(PartialEq, Copy, Clone, Debug)]
     #[repr(C, packed(1))]
     pub struct CommandBase {
         pub direction: u8,
@@ -67,7 +67,8 @@ mod stub
         pub size: u16,
         pub checksum: u32,
     }
-
+    
+    #[derive(PartialEq, Copy, Clone, Debug)]
     #[repr(C, packed(1))]
     pub struct FlashBeginCommand {
         pub base: CommandBase,
@@ -76,8 +77,8 @@ mod stub
         pub packet_size: u32,
         pub offset: u32,
     }
-
-    // #[derive(PartialEq)]
+    
+    #[derive(PartialEq, Copy, Clone)]
     #[repr(C, packed(1))]
     pub struct FlashDataCommand<'a> {
         pub base: CommandBase,
@@ -87,15 +88,15 @@ mod stub
         pub reserved1: u32,
         pub data: &'a [u8],
     }
-
-    // #[derive(PartialEq)]
+    
+    #[derive(PartialEq, Copy, Clone)]
     #[repr(C, packed(1))]
     pub struct FlashEndCommand {
         pub base: CommandBase,
         pub run_user_code: u32,
     }
-
-    // #[derive(PartialEq)]
+    
+    #[derive(PartialEq, Copy, Clone)]
     pub enum Command<'a>
     {
         FlashBegin(FlashBeginCommand),
@@ -113,14 +114,20 @@ mod stub
             Error::InvalidMessageReceived
         }
     }
-
-    fn slice_to_array(slice: &[u8]) -> [u8; 8] {
-        slice.try_into().unwrap()
+    
+    // todo: get rid of SIZE
+    fn slice_to_struct<T: Sized, const SIZE: usize>(slice: &[u8]) -> T
+    {
+        let array: [u8; SIZE] = slice.try_into().unwrap();
+        unsafe { mem::transmute_copy::<[u8; SIZE], T>(&array) }
     }
 
-    fn slice_to_array_2(slice: &[u8]) -> [u8; mem::size_of::<FlashDataCommand>()] {
-        slice.try_into().unwrap()
+    macro_rules! slice_2_struct {
+        ($slice:expr, $type:ty) => {
+            slice_to_struct::<$type, { mem::size_of::<$type>() }>($slice)
+        };
     }
+    
 
     impl<'a> Stub<'a> {
 
@@ -139,26 +146,8 @@ mod stub
                 return Err(Error::InvalidMessageReceived);
             }
 
-            let data = slice_to_array(self.payload.as_slice());
-            let _command =  unsafe { mem::transmute::<[u8; 8], CommandBase>(data) };
-            
-            let data = slice_to_array_2(self.payload.as_slice());
-            let _command =  unsafe { mem::transmute::<[u8; mem::size_of::<FlashDataCommand>()], FlashDataCommand>(data) };
-
-            let cmd = FlashBeginCommand {
-                base : CommandBase {
-                    direction: 0,
-                    command: CommandType::FlashBegin,
-                    size: 16,
-                    checksum: 0,
-                },
-                erase_addr: 0,
-                packt_count: 0,
-                packet_size: 0,
-                offset: 0,
-            };
-    
-            Ok(Command::FlashBegin(cmd))
+            let command = slice_2_struct!(self.payload.as_slice(), FlashBeginCommand);
+            Ok(Command::FlashBegin(command))
         }
         
     }
@@ -212,11 +201,10 @@ mod slip {
 mod tests {
     use super::*;
     use super::ErrorIO::*;
-    // use super::stub::*;
-    // use super::stub::Error::*;
+    use super::stub::*;
+    use super::stub::Error::*;
     use super::slip::{read_packet, write_packet};
-    use assert2::{assert};
-    // use assert2::{assert, let_assert};
+    use assert2::{assert, let_assert};
     // use matches::assert_matches;
     use std::collections::VecDeque;
     use std::vec::Vec;
@@ -325,27 +313,22 @@ mod tests {
     #[test]
     fn test_wait_for_packet() {
         
-        // let mut io = MockIO::from_slice(&[0xC0, 0, 0, 0, 0, 0, 0, 0, 0, 0xC0]);
-        // let mut stub = Stub::new(&mut io);
-        
-        // let_assert!( Ok(cmd) = stub.wait_for_command() );
-        // assert!( cmd == Command {
-        //     direction_in: true,
-        //     command: CommandType::FlashBegin,
-        //     size: 16,
-        //     checksum: 0x12345678,
-        //     payload: heapless::Vec::new()
-        // } );
-        
         // Returns InvalidMessageReceived after receiving incomplete message
-        // let mut io = MockIO::from_slice(&[0xC0, 0xAA, 0x00]);
-        // let mut stub = Stub::new(&mut io);
-        // assert!( Err(InvalidMessageReceived) == stub.wait_for_command() );
-
-        // Returns InvalidMessageReceived after receiving incomplete message
-        // let mut io = MockIO::from_slice(&[0xC0, 0xAA, 0x00]);
-        // let mut stub = Stub::new(&mut io);
-        // assert!( Err(InvalidMessageReceived) == stub.wait_for_command() );
+        let mut io = MockIO::from_slice(&[
+            0xC0, 
+            1,
+            CommandType::FlashBegin as u8,
+            4, 0,
+            1, 0, 0, 0, // checksum
+            2, 0, 0, 0, // erase_addr
+            3, 0, 0, 0, // packt_count
+            4, 0, 0, 0, // packet_size
+            5, 0, 0, 0, // offset
+            0xC0]);
+        let mut stub = Stub::new(&mut io);
+        let_assert!( Ok(Command::FlashBegin(cmd)) = stub.wait_for_command() );
+        println!("{:?}", cmd);
+        assert!(cmd.base.direction == 1);
 
         // let _slice = [1 as u8, 0xAu8, 16u16];
     }
