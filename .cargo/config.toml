@@ -1,13 +1,12 @@
-[target.xtensa-esp32-none-elf]
-runner = "xtensa-esp32-elf-gdb -q -x xtensa.gdb"
+# [target.riscv32imc-unknown-none-elf]
+# runner = "espflash --format direct-boot --monitor"
+# rustflags = [
+#   "-C", "link-arg=-Tlinkall.x"
+# ]
 
 [build]
 target = "riscv32imc-unknown-none-elf"
-[target.'cfg(any(target_arch="riscv"))']
+[target.'cfg(any(target_arch="riscv32"))']
 rustflags = [
-  "-C", "link-arg=-nostartfiles",
-  "-C", "link-arg=-Wl,-Tlink.x",
+  "-C", "link-arg=-Tlinkall.x"
 ]
-
-# [unstable]
-# build-std=["core", "alloc"]

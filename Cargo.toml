@@ -5,9 +5,13 @@ edition = "2021"
 
 [dependencies]
 heapless = "0.7.10"
-[target.'cfg(target_arch = "riscv")'.dependencies]
-esp32-hal = "0.3.0"
+mockall_double = "0.1.0"
+md-5 = { version = "0.10.1", default-features = false }
+[target.'cfg(target_arch = "riscv32")'.dependencies]
+esp32c3-hal = { path = "../esp-hal/esp32c3-hal" }
+riscv-rt = "0.8.1"
 
 [dev-dependencies]
 assert2 = "0.3.6"
 matches = "0.1.9"
+mockall = "0.11.0"
