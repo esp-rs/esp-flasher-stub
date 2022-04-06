@@ -18,9 +18,10 @@ pub trait InputIO {
     fn write(&mut self, data: &[u8]) -> Result<(), ErrorIO>;
 }
 
-type Buffer = heapless::Vec<u8, 1024>;
 
-mod stub
+type Buffer = heapless::Vec<u8, 0x5000>;
+
+pub mod stub
 {
     use super::*;
     use super::target::*;
@@ -28,45 +29,21 @@ mod stub
     use core::mem;
     use core::slice;
     use core::cmp::min;
-    use core::mem::MaybeUninit;
+    // use core::mem::MaybeUninit;
     use crate::commands::*;
     use crate::commands::CommandCode::*;
     use md5::{Md5, Digest};
-
+    
     const DATA_CMD_SIZE: usize = mem::size_of::<DataCommand>();
     const CMD_BASE_SIZE: usize = mem::size_of::<CommandBase>();
-
-    const MAX_WRITE_BLOCK: u32 = 0x4000;
-
-    const FLASH_SECTOR_SIZE: u32 = 4096;
-
     
-    #[derive(PartialEq, Copy, Clone)]
-    pub enum Command<'a>
-    {
-        Sync(SyncCommand),
-        Begin(BeginCommand),
-        Data(DataCommand, &'a[u8]),
-        End(EndCommand),
-        ReadReg(u32),
-        WriteReg(WriteRegCommand),
-        SpiSetParams(SpiSetParamsCommand),
-        SpiAttach(u32),
-        ChangeBaudrate(ChangeBaudrateCommand),
-        SpiFlashMd5(SpiFlashMd5Command),
-        EraseFlash,
-        EraseRegion(EraseRegionCommand),
-        ReadFlash(ReadFlashCommand),
-        RunUserCode,
-        Unwkown(CommandCode)
-    }
-
+    const FLASH_SECTOR_SIZE: u32 = 4096;
+    const MAX_WRITE_BLOCK: u32 = 0x4000;
     pub struct Stub<'a> {
         io: &'a mut (dyn InputIO + 'a),
-        payload: Buffer,
-        // Begin
-        total_size: u32,
-        offset: u32,
+        end_addr: u32,
+        write_addr: u32,
+        erase_addr: u32,
     }
 
     impl From<ErrorIO> for Error {
@@ -91,7 +68,7 @@ mod stub
         };
     }
 
-    pub unsafe fn to_u8_slice<T: Sized>(p: &T) -> &[u8] {
+    pub unsafe fn to_slice_u8<T: Sized>(p: &T) -> &[u8] {
         slice::from_raw_parts( (p as *const T) as *const u8, mem::size_of::<T>(), )
     }
 
@@ -105,42 +82,14 @@ mod stub
         pub fn new(input_io: &'a mut dyn InputIO) -> Self {
             Stub { 
                 io: input_io,
-                payload: heapless::Vec::new(),
-                offset: 0,
-                total_size: 0,
-            }
-        }
-
-        pub fn wait_for_command(&mut self, code: &mut CommandCode) -> Result<Command, Error>
-        {
-            read_packet(self.io, &mut self.payload)?;
-
-            let payload = self.payload.as_slice();
-            let command = transmute!(&payload[..CMD_BASE_SIZE], CommandBase)?;
-            *code = command.code;
-            
-            match command.code {
-                FlashData | FlashDeflData | MemData => {
-                    let cmd = transmute!(&payload[..DATA_CMD_SIZE], DataCommand)?;
-                    return Ok(Command::Data( cmd, &payload[DATA_CMD_SIZE..]) );
-                },
-                Sync => return Ok(Command::Sync( transmute!(payload, SyncCommand)? )),
-                FlashBegin => return Ok(Command::Begin( transmute!(payload, BeginCommand)? )),
-                FlashEnd => return Ok(Command::End( transmute!(payload, EndCommand)? )),
-                WriteReg => return Ok(Command::WriteReg( transmute!(payload, WriteRegCommand)? )),
-                ReadReg => return Ok(Command::ReadReg( u32_from_slice(payload, CMD_BASE_SIZE))),
-                SpiSetParams => return Ok(Command::SpiSetParams( transmute!(payload, SpiSetParamsCommand)? )),
-                SpiAttach => return Ok(Command::SpiAttach( u32_from_slice(payload, CMD_BASE_SIZE))),
-                ChangeBaudrate => return Ok(Command::ChangeBaudrate( transmute!(payload, ChangeBaudrateCommand)? )),
-                SpiFlashMd5 => return Ok(Command::SpiFlashMd5( transmute!(payload, SpiFlashMd5Command)? )),
-                EraseRegion => return Ok(Command::EraseRegion( transmute!(payload, EraseRegionCommand)? )),
-                ReadFlash => return Ok(Command::ReadFlash( transmute!(payload, ReadFlashCommand)? )),
-                _ => return Ok(Command::Unwkown(command.code))
+                write_addr: 0,
+                end_addr: 0,
+                erase_addr: 0,
             }
         }
 
         pub fn send_response(&mut self, resp: &Response) -> Result<(), Error> {
-            let resp_slice = unsafe{ to_u8_slice(resp) };
+            let resp_slice = unsafe{ to_slice_u8(resp) };
             write_delimiter(self.io)?;
             write_packet(self.io, &resp_slice[..RESPONSE_SIZE])?;
             write_packet(self.io, resp.data)?;
@@ -148,112 +97,178 @@ mod stub
             Ok(())
         }
 
-        pub fn send_md5_response(&mut self, resp: &Response) -> Result<(), Error> {
-            let resp_slice = unsafe{ to_u8_slice(resp) };
+        pub fn send_md5_response(&mut self, resp: &Response, md5: &[u8]) -> Result<(), Error> {
+            let resp_slice = unsafe{ to_slice_u8(resp) };
             write_delimiter(self.io)?;
             write_packet(self.io, &resp_slice[..RESPONSE_SIZE-2])?;
-            write_packet(self.io, resp.data)?;
-            write_packet(self.io, &resp_slice[RESPONSE_SIZE-2..])?;
+            write_packet(self.io, md5)?;
+            write_packet(self.io, &resp_slice[RESPONSE_SIZE-2..RESPONSE_SIZE])?;
             write_delimiter(self.io)?;
             Ok(())
         }
-        
-        pub fn process_commands(&mut self) -> Result<(), Error> {
+
+        fn process_begin(&mut self, cmd: &BeginCommand) -> Result<(), Error> {
             
-            let mut command_code = Sync;
-            let offset = self.offset; 
-            let command = self.wait_for_command(&mut command_code)?; // todo handle errors
-            let mut response = Response::new(command_code);
-            
-            match command {
-                Command::Sync(_) => (),
-                Command::ReadReg(address) => response.value(read_register(address)),
-                Command::WriteReg(reg) => write_register(reg.address, reg.value),
-                Command::Begin(cmd) => {
+            match cmd.base.code {
+                FlashBegin => {
                     if cmd.packet_size > MAX_WRITE_BLOCK {
-                        response.error(Error::BadBlocksize)
+                        return Err(Error::BadBlocksize);
+                    }
+                    self.write_addr = cmd.offset;
+                    self.erase_addr = cmd.offset;
+                    self.end_addr = cmd.offset + cmd.total_size;
+                    // Todo check max size 16MB
+                    return unlock_flash();
+                },
+                MemBegin => {
+                    self.write_addr = cmd.offset;
+                    self.end_addr = cmd.offset + cmd.total_size;
+                }
+                _ => ()
+            }
+            Ok(())
+        }
+        
+        fn process_data(&mut self, cmd: &DataCommand, data: &[u8]) -> Result<(), Error> {
+            let checksum: u8 = data.iter().fold(0xEF, |acc, x| acc ^ x);
+            let code = cmd.base.code;
+            let data_len = data.len() as u32;
+
+            if cmd.size != data_len {
+                return Err(Error::BadDataLen);
+            } else if cmd.base.checksum != checksum as u32 {
+                return Err(Error::BadDataChecksum);
+            } else {
+                while self.erase_addr < self.write_addr + data_len {
+                    if self.end_addr >= self.erase_addr + FLASH_BLOCK_SIZE && 
+                        self.erase_addr % FLASH_BLOCK_SIZE == 0 {
+                        flash_erase_block(self.erase_addr);
+                        self.erase_addr += FLASH_BLOCK_SIZE;
                     } else {
-                        self.offset = cmd.offset;
-                        self.total_size = cmd.total_size;
+                        flash_erase_sector(self.erase_addr);
+                        self.erase_addr += FLASH_SECTOR_SIZE;
                     }
                 }
-                Command::Data(cmd, data) => {
-                    let checksum = data.iter().fold(0xEF, |acc, x| acc + x);
-                    let code = cmd.base.code;
-                    if cmd.size != data.len() as u32 {
-                        response.error(Error::BadDataLen)
-                    } else if cmd.base.checksum != checksum as u32 {
-                        response.error(Error::BadDataChecksum)
-                    } else {
-                        if let Err(err) = memory_write(code, offset, data) {
-                            response.error(err);
-                        }
-                        self.offset += data.len() as u32
-                    }
+                memory_write(code, self.write_addr, data)?;                    
+                self.write_addr += data_len
+            }
+            Ok(())
+        }
+
+        #[allow(unreachable_patterns)]
+        pub fn process_cmd(&mut self, payload: &[u8], 
+                            code: CommandCode, 
+                            response: &mut Response) -> Result<bool, Error> {
+            
+            let mut response_sent = false;
+    
+            match code {
+                Sync => (),
+                ReadReg => {
+                    let address = u32_from_slice(payload, CMD_BASE_SIZE);
+                    response.value(read_register(address));
                 }
-                Command::End(cmd) => {
+                WriteReg => {
+                    let reg = transmute!(payload, WriteRegCommand)?;
+                    write_register(reg.address, reg.value);
+                }
+                FlashBegin | MemBegin | FlashDeflBegin => {
+                    let cmd = transmute!(payload, BeginCommand)?;
+                    self.process_begin(&cmd)?
+                }
+                FlashData | FlashDeflData | MemData => {
+                    let cmd = transmute!(&payload[..DATA_CMD_SIZE], DataCommand)?;
+                    let data = &payload[DATA_CMD_SIZE..];
+                    self.process_data(&cmd, data)?
+                }
+                FlashEnd | MemEnd | FlashDeflEnd => {
+                    let cmd = transmute!(payload, EndCommand)?;
                     if cmd.run_user_code == 1 {
-                        run_user_code();
+                        self.send_response(&response)?;
+                        delay_us(10000);
+                        soft_reset();
                     }
                 }
-                Command::SpiFlashMd5(cmd) => {
-                    match calculate_md5(cmd.address, cmd.size) {
-                        Ok(md5) => {
-                            response.data(&md5);
-                            return self.send_md5_response(&response);
-                        }
-                        Err(err) => response.error(err)
-                    }
+                SpiFlashMd5 => {
+                    let cmd = transmute!(payload, SpiFlashMd5Command)?;
+                    let md5 = calculate_md5(cmd.address, cmd.size)?;
+                    self.send_md5_response(&response, &md5)?;
+                    response_sent = true;
                 }
-                Command::SpiSetParams(cmd) => {
-                    spi_set_params(&cmd.params);
+                SpiSetParams => {
+                    let cmd = transmute!(payload, SpiSetParamsCommand)?;
+                    spi_set_params(&cmd.params)?
                 }
-                Command::SpiAttach(param) => {
+                SpiAttach => {
+                    let param = u32_from_slice(payload, CMD_BASE_SIZE);
                     spi_attach(param);
                 }
-                Command::ChangeBaudrate(baud) => {
+                ChangeBaudrate => {
+                    let baud = transmute!(payload, ChangeBaudrateCommand)?;
+                    self.send_response(&response)?;
+                    delay_us(10000);
                     change_baudrate(baud.old, baud.new);
+                    response_sent = true;
                 }
-                Command::EraseFlash => {
-                    erase_flash().unwrap_or_else(|e| response.error(e)); // unwrap_or_else ? 
+                EraseFlash => {
+                    erase_flash()?
                 }
-                Command::EraseRegion(reg) => {
-                    erase_region(reg.address, reg.size).unwrap_or_else(|e| response.error(e));
+                EraseRegion => {
+                    let reg = transmute!(payload, EraseRegionCommand)?;
+                    erase_region(reg.address, reg.size)?
                 }
-                Command::ReadFlash(cmd) => {
-                    read_flash(&cmd.params).unwrap_or_else(|e| response.error(e));
+                ReadFlash => {
+                    let cmd = transmute!(payload, ReadFlashCommand)?;
+                    read_flash(&cmd.params)?
                 }
-                Command::RunUserCode => {
-                    run_user_code();
+                RunUserCode => {
+                    todo!();
                 }
-                Command::Unwkown(_) => {
-                    response.error(Error::InvalidCommand);
+                _ => {
+                    return Err(Error::InvalidCommand);
                 }
             };
 
-            self.send_response(&response)?;
+            Ok(response_sent)
+        }
+
+        #[allow(unreachable_patterns)]
+        pub fn process_command(&mut self, payload: &[u8]) -> Result<(), Error> {
+            
+            let command = transmute!(&payload[..CMD_BASE_SIZE], CommandBase)?;
+            let mut response = Response::new(command.code);
+
+            match self.process_cmd(payload, command.code, &mut response) {
+                Ok(response_sent) =>  match response_sent {
+                    true => return Ok(()),
+                    false => (),
+                }
+                Err(err) => response.error(err)
+            }
+
+            self.send_response(&response)
+        }
+
+        pub fn read_command(&mut self, buffer: &mut Buffer) -> Result<(), Error> {
+            read_packet(self.io, buffer)?;
             Ok(())
         }
     }
 
     pub fn calculate_md5(mut address: u32, mut size: u32) -> Result<[u8; 16], Error> {
-        let mut buffer: [u8; FLASH_SECTOR_SIZE as usize] = unsafe { MaybeUninit::uninit().assume_init() };
+        let mut buffer: [u8; FLASH_SECTOR_SIZE as usize] = [0; FLASH_SECTOR_SIZE as usize];
         let mut hasher = Md5::new();
 
         while size > 0 {
             let to_read = min(size, FLASH_SECTOR_SIZE);
-            spi_read(address, to_read, &mut buffer).map_err(|_| Error::Err0x63 )?;
-            hasher.update(buffer);
+            target::spi_flash_read(address, &mut buffer)?;
+            hasher.update(&buffer[0..to_read as usize]);
             size -= to_read;
             address += to_read;
         }
 
         let result: [u8; 16] = hasher.finalize().into();
         Ok(result)
-    }
-
-    fn spi_read(_address: u32, _size: u32, _data: &mut [u8]) -> Result<(), ErrorIO> {
-        todo!();
     }
 }
 
@@ -528,7 +543,7 @@ mod tests {
     fn decorate_command<T>(data: T) -> Vec<u8> {
         let mut v = Vec::new();
         v.push(0xC0);
-        v.extend_from_slice( unsafe{ to_u8_slice(&data) } );
+        v.extend_from_slice( unsafe{ to_slice_u8(&data) } );
         v.push(0xC0);
         v
     }

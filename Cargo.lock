@@ -731,12 +731,15 @@ name = "stub"
 version = "0.1.0"
 dependencies = [
  "assert2",
+ "embedded-hal",
+ "esp-hal-common",
  "esp32c3-hal",
  "heapless",
  "matches",
  "md-5",
  "mockall",
  "mockall_double",
+ "nb 1.0.0",
  "riscv-rt",
 ]
 

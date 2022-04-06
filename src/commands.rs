@@ -14,6 +14,11 @@ pub enum Error
     CmdNotImplemented = 0xFF,
 
     Err0x63 = 0x63,
+    Err0x32 = 0x32,
+    Err0x33 = 0x33,
+    Err0x34 = 0x34,
+    Err0x35 = 0x35,
+    RunUserCode = 0xEE,
 }
 
 #[derive(PartialEq, Copy, Clone, Debug)]

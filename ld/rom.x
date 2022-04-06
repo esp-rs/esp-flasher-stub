@@ -73,5 +73,9 @@ PROVIDE( Disable_QMode = 0x40000224 );
 PROVIDE( Enable_QMode = 0x40000228 );
 PROVIDE( ets_efuse_get_spiconfig = 0x4000071c );
 PROVIDE( uart_tx_one_char = 0x40000068 );
-
+PROVIDE( uart_div_modify = 0x40000088 );
+PROVIDE( ets_get_apb_freq = 0x40000580 );
+PROVIDE( ets_get_cpu_frequency = 0x40000584 );
+PROVIDE( software_reset = 0x40000090 );
+PROVIDE( ets_delay_us = 0x40000050 );
 /* Do not exceed this mark in the error messages above                                    | */

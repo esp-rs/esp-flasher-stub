@@ -8,5 +8,7 @@
 target = "riscv32imc-unknown-none-elf"
 [target.'cfg(any(target_arch="riscv32"))']
 rustflags = [
-  "-C", "link-arg=-Tlinkall.x"
+  # "-C", "link-arg=-Tmy_link.x",
+  # "-C", "link-arg=-Tld/rom.x",
+  "-C", "link-args=-Map=target/stub.map",
 ]
