@@ -154,9 +154,9 @@ pub struct EraseRegionCommand {
 #[repr(C, packed(1))]
 pub struct ReadFlashParams {
     pub address: u32,
-    pub erase_size: u32,
-    pub sector_size: u32,
+    pub total_size: u32,
     pub packet_size: u32,
+    pub max_inflight: u32,
 }
 
 #[derive(PartialEq, Copy, Clone)]

@@ -65,7 +65,7 @@ pub mod esp32c3 {
     const FLASH_STATUS_MASK: u32 = 0xFFFF;
 
     fn get_uart_div(current_baud: u32, new_baud: u32) -> u32 {
-        let clock_div_reg = unsafe{ *(UART0_CLKDIV_REG as *const u32) };
+        let clock_div_reg = read_register(UART0_CLKDIV_REG);
         let uart_div = clock_div_reg & UART_CLKDIV_M;
         let fraction = (clock_div_reg >> UART_CLKDIV_FRAG_S) & UART_CLKDIV_FRAG_V;
         let uart_div = (uart_div << 4) + fraction;
@@ -80,7 +80,7 @@ pub mod esp32c3 {
         unsafe { *(address as *mut u32) = value; }
     }
 
-    pub fn memory_write(mem_type: CommandCode, address: u32, data: &[u8]) -> Result<(), Error> {
+    pub fn memory_write(mem_type: CommandCode, mut address: u32, data: &[u8]) -> Result<(), Error> {
 
         let result = match mem_type {
             FlashData => {
@@ -90,12 +90,13 @@ pub mod esp32c3 {
                 while remaining > 0 {
                     let to_write = core::cmp::min(FLASH_SECTOR_SIZE, remaining);
                     let data_ptr = data[written..].as_ptr();
-                    let err = unsafe { esp_rom_spiflash_write(address + written as u32, data_ptr, to_write) };
+                    let err = unsafe { esp_rom_spiflash_write(address, data_ptr, to_write) };
                     if err != 0 { 
                         return Err(Error::FailedSpiOp);
                     }
                     remaining -= to_write;
                     written += to_write as usize;
+                    address += to_write;
                 }
                 Ok(()) 
             },
@@ -151,8 +152,10 @@ pub mod esp32c3 {
     
     pub fn erase_flash() -> Result<(), Error> {
         // Returns 1 or 2 in case of failure
-        let result = unsafe{ esp_rom_spiflash_erase_chip() };
-        if result == 0 { Ok(()) } else { Err(Error::FailedSpiOp) }
+        match unsafe{ esp_rom_spiflash_erase_chip() } {
+            0 => Ok(()),
+            _ => Err(Error::FailedSpiOp)
+        }
     }
 
     fn erase(address: u32, block: bool) {
@@ -201,7 +204,6 @@ pub mod esp32c3 {
         erase(address, false);
     }
 
-
     pub fn erase_region(address: u32, size: u32) -> Result<(), Error> {
         if address % FLASH_SECTOR_SIZE != 0 {
             return Err(Err0x32);
@@ -213,18 +215,16 @@ pub mod esp32c3 {
             return Err(Err0x34);
         }
 
-        for offset in (0..size).step_by(FLASH_SECTOR_SIZE as usize) {
-            if unsafe{ esp_rom_spiflash_erase_sector(address + offset) } != 0 {
+        let sector_start = address / FLASH_SECTOR_SIZE;
+        let sector_end = sector_start + (size / FLASH_SECTOR_SIZE);
+
+        for sector in sector_start..sector_end {
+            if unsafe{ esp_rom_spiflash_erase_sector(sector) } != 0 {
                 return Err(Err0x35);
             }
         }
 
         Ok(())
-    }
-
-    pub fn read_flash(_params: &ReadFlashParams) -> Result<(), Error> {
-        // Can return FailedSpiOp (?)
-        todo!();
     }
 
     pub fn spi_flash_read(address: u32, data: &mut [u8]) -> Result<(), Error> {

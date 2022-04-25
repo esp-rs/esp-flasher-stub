@@ -131,7 +131,6 @@ pub mod stub
         
         fn process_data(&mut self, cmd: &DataCommand, data: &[u8]) -> Result<(), Error> {
             let checksum: u8 = data.iter().fold(0xEF, |acc, x| acc ^ x);
-            let code = cmd.base.code;
             let data_len = data.len() as u32;
 
             if cmd.size != data_len {
@@ -149,11 +148,37 @@ pub mod stub
                         self.erase_addr += FLASH_SECTOR_SIZE;
                     }
                 }
-                memory_write(code, self.write_addr, data)?;                    
+                memory_write(cmd.base.code, self.write_addr, data)?;                    
                 self.write_addr += data_len
             }
             Ok(())
         }
+
+        // pub fn process_read_flash(&mut self, params: &ReadFlashParams) -> Result<(), Error> {
+        //     // Can return FailedSpiOp (?)
+        //     const BUF_SIZE: usize = FLASH_SECTOR_SIZE as usize;
+        //     let mut buffer: [u8; BUF_SIZE] = [0; BUF_SIZE];
+        //     let mut address = params.address;
+        //     let mut remaining = params.total_size;
+        //     let to_ack = params.total_size / params.packet_size;
+        //     let acked = 0;
+        //     let mut ack_buf = heapless::Vec::<u8, 4>::new();
+    
+        //     while acked < to_ack {
+        //         while remaining > 0 && (to_ack - acked) < params.max_inflight {
+        //             let len = min(params.packet_size, remaining);
+        //             spi_flash_read(address, &mut buffer[..len as usize])?;
+        //             write_packet(self.io, &buffer[..len as usize])?;
+        //             remaining -= len;
+        //             address += len;
+        //             to_ack += 1;
+        //         }
+        //         read_packet(self.io, &mut ack_buf)?;
+        //         acked = u32_from_slice(&ack_buf);
+        //     }
+
+        //     Ok(())
+        // }
 
         #[allow(unreachable_patterns)]
         pub fn process_cmd(&mut self, payload: &[u8], 
@@ -219,7 +244,8 @@ pub mod stub
                 }
                 ReadFlash => {
                     let cmd = transmute!(payload, ReadFlashCommand)?;
-                    read_flash(&cmd.params)?
+                    todo!();
+                    // self.process_read_flash(&cmd.params)?
                 }
                 RunUserCode => {
                     todo!();
@@ -232,7 +258,6 @@ pub mod stub
             Ok(response_sent)
         }
 
-        #[allow(unreachable_patterns)]
         pub fn process_command(&mut self, payload: &[u8]) -> Result<(), Error> {
             
             let command = transmute!(&payload[..CMD_BASE_SIZE], CommandBase)?;
