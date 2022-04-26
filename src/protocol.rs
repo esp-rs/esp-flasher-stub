@@ -91,8 +91,8 @@ pub mod stub
         pub fn send_response(&mut self, resp: &Response) -> Result<(), Error> {
             let resp_slice = unsafe{ to_slice_u8(resp) };
             write_delimiter(self.io)?;
-            write_packet(self.io, &resp_slice[..RESPONSE_SIZE])?;
-            write_packet(self.io, resp.data)?;
+            write_raw(self.io, &resp_slice[..RESPONSE_SIZE])?;
+            write_raw(self.io, resp.data)?;
             write_delimiter(self.io)?;
             Ok(())
         }
@@ -100,9 +100,9 @@ pub mod stub
         pub fn send_md5_response(&mut self, resp: &Response, md5: &[u8]) -> Result<(), Error> {
             let resp_slice = unsafe{ to_slice_u8(resp) };
             write_delimiter(self.io)?;
-            write_packet(self.io, &resp_slice[..RESPONSE_SIZE-2])?;
-            write_packet(self.io, md5)?;
-            write_packet(self.io, &resp_slice[RESPONSE_SIZE-2..RESPONSE_SIZE])?;
+            write_raw(self.io, &resp_slice[..RESPONSE_SIZE-2])?;
+            write_raw(self.io, md5)?;
+            write_raw(self.io, &resp_slice[RESPONSE_SIZE-2..RESPONSE_SIZE])?;
             write_delimiter(self.io)?;
             Ok(())
         }
@@ -154,31 +154,50 @@ pub mod stub
             Ok(())
         }
 
-        // pub fn process_read_flash(&mut self, params: &ReadFlashParams) -> Result<(), Error> {
-        //     // Can return FailedSpiOp (?)
-        //     const BUF_SIZE: usize = FLASH_SECTOR_SIZE as usize;
-        //     let mut buffer: [u8; BUF_SIZE] = [0; BUF_SIZE];
-        //     let mut address = params.address;
-        //     let mut remaining = params.total_size;
-        //     let to_ack = params.total_size / params.packet_size;
-        //     let acked = 0;
-        //     let mut ack_buf = heapless::Vec::<u8, 4>::new();
+        pub fn calculate_md5(mut address: u32, mut size: u32) -> Result<[u8; 16], Error> {
+            let mut buffer: [u8; FLASH_SECTOR_SIZE as usize] = [0; FLASH_SECTOR_SIZE as usize];
+            let mut hasher = Md5::new();
     
-        //     while acked < to_ack {
-        //         while remaining > 0 && (to_ack - acked) < params.max_inflight {
-        //             let len = min(params.packet_size, remaining);
-        //             spi_flash_read(address, &mut buffer[..len as usize])?;
-        //             write_packet(self.io, &buffer[..len as usize])?;
-        //             remaining -= len;
-        //             address += len;
-        //             to_ack += 1;
-        //         }
-        //         read_packet(self.io, &mut ack_buf)?;
-        //         acked = u32_from_slice(&ack_buf);
-        //     }
+            while size > 0 {
+                let to_read = min(size, FLASH_SECTOR_SIZE);
+                target::spi_flash_read(address, &mut buffer)?;
+                hasher.update(&buffer[0..to_read as usize]);
+                size -= to_read;
+                address += to_read;
+            }
+    
+            let result: [u8; 16] = hasher.finalize().into();
+            Ok(result)
+        }
 
-        //     Ok(())
-        // }
+        pub fn process_read_flash(&mut self, params: &ReadFlashParams) -> Result<(), Error> {
+            // Can return FailedSpiOp (?)
+            const BUF_SIZE: usize = FLASH_SECTOR_SIZE as usize;
+            let mut buffer: [u8; BUF_SIZE] = [0; BUF_SIZE];
+            let mut address = params.address;
+            let mut remaining = params.total_size;
+            let to_ack = params.total_size / params.packet_size;
+            let mut acked = 0;
+            let mut ack_buf: [u8; 4] = [0; 4];
+            let mut hasher = Md5::new();
+        
+            while acked < to_ack {
+                while remaining > 0 && (to_ack - acked) < params.max_inflight {
+                    let len = min(params.packet_size, remaining);
+                    spi_flash_read(address, &mut buffer[..len as usize])?;
+                    write_packet(self.io, &buffer[..len as usize])?;
+                    hasher.update(&buffer[0..len as usize]);
+                    remaining -= len;
+                    address += len;
+                }
+                let resp = read_packet(self.io, &mut ack_buf)?;
+                acked = u32_from_slice(resp, 0);
+            }
+
+            let md5: [u8; 16] = hasher.finalize().into();
+            write_packet(self.io, &md5)?;
+            Ok(())
+        }
 
         #[allow(unreachable_patterns)]
         pub fn process_cmd(&mut self, payload: &[u8], 
@@ -240,12 +259,13 @@ pub mod stub
                 }
                 EraseRegion => {
                     let reg = transmute!(payload, EraseRegionCommand)?;
-                    erase_region(reg.address, reg.size)?
+                    erase_region(reg.address, reg.size)?;
                 }
                 ReadFlash => {
+                    self.send_response(&response)?;
                     let cmd = transmute!(payload, ReadFlashCommand)?;
-                    todo!();
-                    // self.process_read_flash(&cmd.params)?
+                    self.process_read_flash(&cmd.params)?;
+                    response_sent = true;
                 }
                 RunUserCode => {
                     todo!();
@@ -274,9 +294,9 @@ pub mod stub
             self.send_response(&response)
         }
 
-        pub fn read_command(&mut self, buffer: &mut Buffer) -> Result<(), Error> {
-            read_packet(self.io, buffer)?;
-            Ok(())
+        pub fn read_command<'c, 'd>(&'c mut self, buffer: &'d mut [u8]) -> Result<&'d [u8], Error> {
+            let data = read_packet(self.io, buffer)?;
+            Ok(data)
         }
     }
 
@@ -308,28 +328,30 @@ mod slip {
         }
     }
 
-    pub fn read_packet(io: &mut dyn InputIO, packet: &mut Buffer) -> Result<(), ErrorIO> {
-        packet.clear();
+    pub fn read_packet<'c, 'd>(io: &'c mut dyn InputIO, packet: &'d mut [u8]) -> Result<&'d [u8], ErrorIO> {
         
         while io.read()? != 0xC0 { }
 
         // Replase: 0xDB 0xDC -> 0xC0 and 0xDB 0xDD -> 0xDB   
+        let mut i = 0;
         loop {
             match io.read()? {
                 0xDB => match io.read()? {
-                    0xDC => packet.push(0xC0)?,
-                    0xDD => packet.push(0xDB)?,
+                    0xDC => packet[i] = 0xC0,
+                    0xDD => packet[i] = 0xDB,
                     _ => return Err(InvalidResponse),
                 }
                 0xC0 => break,
-                other => packet.push(other)?,
+                other => packet[i] = other,
             };
+            i += 1;
         }
-        Ok(())
+
+        Ok(&packet[..i])
     } 
 
-    pub fn write_packet(io: &mut dyn InputIO, packet: &[u8]) -> Result<(), ErrorIO> {
-        for byte in packet {
+    pub fn write_raw(io: &mut dyn InputIO, data: &[u8]) -> Result<(), ErrorIO> {
+        for byte in data {
             match byte {
                 0xC0  => io.write(&[0xDB, 0xDC])?,
                 0xDB  => io.write(&[0xDB, 0xDD])?,
@@ -337,6 +359,12 @@ mod slip {
             }
         }
         Ok(())
+    }
+
+    pub fn write_packet(io: &mut dyn InputIO, data: &[u8]) -> Result<(), ErrorIO> {
+        write_delimiter(io)?;
+        write_raw(io, data)?;
+        write_delimiter(io)
     }
     
     pub fn write_delimiter(io: &mut dyn InputIO) -> Result<(), ErrorIO> {
@@ -350,7 +378,7 @@ mod tests {
     use super::ErrorIO::*;
     use super::stub::*;
     // use super::stub::Error::*;
-    use super::slip::{read_packet, write_packet};
+    use super::slip::{read_packet, write_raw};
     use assert2::{assert, let_assert};
     // use matches::assert_matches;
     use std::collections::VecDeque;
@@ -440,16 +468,16 @@ mod tests {
     }
 
     #[test]
-    fn test_write_packet() {
+    fn test_write_raw() {
         let mut io = MockIO::new();
 
         // 0xC0 is replaced with 0xDB 0xDC
-        assert!( write_packet(&mut io, &[1, 0xC0, 3]) == Ok(()));
+        assert!( write_raw(&mut io, &[1, 0xC0, 3]) == Ok(()));
         assert!( io.written() == &[1, 0xDB, 0xDC, 3] );
         io.clear();
 
         // 0xDB is replaced with 0xDB 0xDD
-        assert!( write_packet(&mut io, &[1, 0xDB, 3]) == Ok(()));
+        assert!( write_raw(&mut io, &[1, 0xDB, 3]) == Ok(()));
         assert!( io.written() == &[1, 0xDB, 0xDD, 3] );
         io.clear();
     }

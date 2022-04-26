@@ -22,7 +22,6 @@ mod main {
     use crate::protocol::{InputIO, ErrorIO};
     use embedded_hal::serial::Read;
     use nb;
-    use heapless;
 
     use esp32c3_hal::{
         // clock_control::{sleep, ClockControl, XTAL_FREQUENCY_AUTO},
@@ -104,11 +103,11 @@ mod main {
 
         target::spi_set_default_params().unwrap();
 
-        let mut buffer = heapless::Vec::<u8, 0x5000>::new();
+        let mut buffer: [u8; 0x5000] = [0; 0x5000];
 
         loop {
-            stub.read_command(&mut buffer).unwrap();
-            stub.process_command(&buffer).unwrap();
+            let data = stub.read_command(&mut buffer).unwrap();
+            stub.process_command(data).unwrap();
 
             // delay.delay(500u32 * 1000);
             // serial.write_str("Hello world\n").unwrap();
