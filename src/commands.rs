@@ -18,7 +18,6 @@ pub enum Error
     Err0x33 = 0x33,
     Err0x34 = 0x34,
     Err0x35 = 0x35,
-    RunUserCode = 0xEE,
 }
 
 #[derive(PartialEq, Copy, Clone, Debug)]

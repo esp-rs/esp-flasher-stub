@@ -32,7 +32,9 @@ pub mod stub
     // use core::mem::MaybeUninit;
     use crate::commands::*;
     use crate::commands::CommandCode::*;
+    use crate::commands::Error::*;
     use md5::{Md5, Digest};
+    use crate::miniz_types::*;
     
     const DATA_CMD_SIZE: usize = mem::size_of::<DataCommand>();
     const CMD_BASE_SIZE: usize = mem::size_of::<CommandBase>();
@@ -44,6 +46,12 @@ pub mod stub
         end_addr: u32,
         write_addr: u32,
         erase_addr: u32,
+        remaining: u32,
+        remaining_compressed: usize,
+        decompressor: tinfl_decompressor,
+        last_error: Option<Error>,
+        in_flash_mode: bool,
+        total_decompressed_size: usize,
     }
 
     impl From<ErrorIO> for Error {
@@ -56,7 +64,7 @@ pub mod stub
     fn slice_to_struct<T: Sized, const SIZE: usize>(slice: &[u8]) -> Result<T, Error>
     {
         if SIZE != slice.len() {
-            return Err(Error::BadDataLen);
+            return Err(BadDataLen);
         }
         let array: &[u8; SIZE] = &slice[0..SIZE].try_into().unwrap();
         unsafe { Ok(mem::transmute_copy::<[u8; SIZE], T>(array)) }
@@ -75,7 +83,22 @@ pub mod stub
     fn u32_from_slice(slice: &[u8], index: usize) -> u32 {
         u32::from_le_bytes(slice[index..index+4].try_into().unwrap())
     }
-    
+
+    fn calculate_md5(mut address: u32, mut size: u32) -> Result<[u8; 16], Error> {
+        let mut buffer: [u8; FLASH_SECTOR_SIZE as usize] = [0; FLASH_SECTOR_SIZE as usize];
+        let mut hasher = Md5::new();
+
+        while size > 0 {
+            let to_read = min(size, FLASH_SECTOR_SIZE);
+            target::spi_flash_read(address, &mut buffer)?;
+            hasher.update(&buffer[0..to_read as usize]);
+            size -= to_read;
+            address += to_read;
+        }
+
+        let result: [u8; 16] = hasher.finalize().into();
+        Ok(result)
+    }
 
     impl<'a> Stub<'a> {
 
@@ -85,10 +108,16 @@ pub mod stub
                 write_addr: 0,
                 end_addr: 0,
                 erase_addr: 0,
+                remaining: 0,
+                remaining_compressed: 0,
+                decompressor: Default::default(),
+                last_error: None,
+                in_flash_mode: false,
+                total_decompressed_size: 0,
             }
         }
 
-        pub fn send_response(&mut self, resp: &Response) -> Result<(), Error> {
+        fn send_response(&mut self, resp: &Response) -> Result<(), Error> {
             let resp_slice = unsafe{ to_slice_u8(resp) };
             write_delimiter(self.io)?;
             write_raw(self.io, &resp_slice[..RESPONSE_SIZE])?;
@@ -97,7 +126,7 @@ pub mod stub
             Ok(())
         }
 
-        pub fn send_md5_response(&mut self, resp: &Response, md5: &[u8]) -> Result<(), Error> {
+        fn send_md5_response(&mut self, resp: &Response, md5: &[u8]) -> Result<(), Error> {
             let resp_slice = unsafe{ to_slice_u8(resp) };
             write_delimiter(self.io)?;
             write_raw(self.io, &resp_slice[..RESPONSE_SIZE-2])?;
@@ -108,69 +137,197 @@ pub mod stub
         }
 
         fn process_begin(&mut self, cmd: &BeginCommand) -> Result<(), Error> {
+
+            self.write_addr = cmd.offset;
+            self.erase_addr = cmd.offset;
+            self.end_addr = cmd.offset + cmd.total_size;
+            self.remaining_compressed = (cmd.packt_count * cmd.packet_size) as usize;
+            self.remaining = cmd.total_size;
+            self.decompressor.state = 0;
             
             match cmd.base.code {
-                FlashBegin => {
+                FlashBegin | FlashDeflBegin => {
                     if cmd.packet_size > MAX_WRITE_BLOCK {
-                        return Err(Error::BadBlocksize);
+                        return Err(BadBlocksize);
                     }
-                    self.write_addr = cmd.offset;
-                    self.erase_addr = cmd.offset;
-                    self.end_addr = cmd.offset + cmd.total_size;
-                    // Todo check max size 16MB
-                    return unlock_flash();
-                },
-                MemBegin => {
-                    self.write_addr = cmd.offset;
-                    self.end_addr = cmd.offset + cmd.total_size;
+                    // Todo: check for 16MB flash only
+                    self.in_flash_mode = true;
+                    unlock_flash()?;
                 }
-                _ => ()
+                _ => () // Do nothing for MemBegin
             }
+
             Ok(())
         }
-        
-        fn process_data(&mut self, cmd: &DataCommand, data: &[u8]) -> Result<(), Error> {
-            let checksum: u8 = data.iter().fold(0xEF, |acc, x| acc ^ x);
+
+        fn process_end(&mut self, cmd: &EndCommand, response: &Response) -> Result<(), Error> {
+
+            if cmd.base.code == MemEnd {
+
+                let addr = self.erase_addr as *const u32;
+                let length = self.end_addr - self.erase_addr;
+                let slice = unsafe { slice::from_raw_parts(addr, length as usize) };
+                let mut memory: [u32; 32] = [0; 32];
+                memory.copy_from_slice(&slice);
+
+                return match self.remaining { 
+                    0 => Ok(()),
+                    _ => Err(NotEnoughData) 
+                }
+            } else if !self.in_flash_mode {
+                return Err(NotInFlashMode);
+            } else if self.remaining > 0 {
+                return Err(NotEnoughData);
+            }
+            
+            self.in_flash_mode = false;
+
+            if cmd.run_user_code == 1 {
+                self.send_response(&response)?;
+                delay_us(10000);
+                soft_reset();
+            }
+
+            Ok(())
+        }
+
+        fn write_ram(&mut self, data: &[u8]) -> Result<(), Error> {
             let data_len = data.len() as u32;
 
-            if cmd.size != data_len {
-                return Err(Error::BadDataLen);
-            } else if cmd.base.checksum != checksum as u32 {
-                return Err(Error::BadDataChecksum);
-            } else {
-                while self.erase_addr < self.write_addr + data_len {
-                    if self.end_addr >= self.erase_addr + FLASH_BLOCK_SIZE && 
-                        self.erase_addr % FLASH_BLOCK_SIZE == 0 {
-                        flash_erase_block(self.erase_addr);
-                        self.erase_addr += FLASH_BLOCK_SIZE;
-                    } else {
-                        flash_erase_sector(self.erase_addr);
-                        self.erase_addr += FLASH_SECTOR_SIZE;
-                    }
-                }
-                memory_write(cmd.base.code, self.write_addr, data)?;                    
-                self.write_addr += data_len
+            if self.write_addr == 0 && data_len > 0 {
+                return Err(NotInFlashMode);
+            } else if data_len > self.remaining {
+                return Err(TooMuchData);
+            } else if data_len % 4 != 0 {
+                return Err(BadDataLen);
             }
+            
+            let (_, data_u32, _) = unsafe{ data.align_to::<u32>() };
+            
+            for word in data_u32 {
+                let memory = self.write_addr as *mut u32;
+                unsafe{ *memory = *word }; 
+                self.write_addr += 4;
+            }
+            
             Ok(())
         }
 
-        pub fn calculate_md5(mut address: u32, mut size: u32) -> Result<[u8; 16], Error> {
-            let mut buffer: [u8; FLASH_SECTOR_SIZE as usize] = [0; FLASH_SECTOR_SIZE as usize];
-            let mut hasher = Md5::new();
-    
-            while size > 0 {
-                let to_read = min(size, FLASH_SECTOR_SIZE);
-                target::spi_flash_read(address, &mut buffer)?;
-                hasher.update(&buffer[0..to_read as usize]);
-                size -= to_read;
-                address += to_read;
+        fn flash_data(&mut self, data: &[u8]) -> Result<(), Error> {
+
+            let mut address = self.write_addr;
+            let mut remaining = data.len() as u32;
+            let mut written = 0;
+
+            // Erase flash
+            while self.erase_addr < self.write_addr + remaining {
+                if self.end_addr >= self.erase_addr + FLASH_BLOCK_SIZE && 
+                    self.erase_addr % FLASH_BLOCK_SIZE == 0 {
+                    flash_erase_block(self.erase_addr);
+                    self.erase_addr += FLASH_BLOCK_SIZE;
+                } else {
+                    flash_erase_sector(self.erase_addr);
+                    self.erase_addr += FLASH_SECTOR_SIZE;
+                }
             }
-    
-            let result: [u8; 16] = hasher.finalize().into();
-            Ok(result)
+            
+            // Write flash
+            while remaining > 0 {
+                let to_write = min(FLASH_SECTOR_SIZE, remaining);
+                let data_ptr = data[written..].as_ptr();
+                spiflash_write(address, data_ptr, to_write)?;
+                remaining -= to_write;
+                written += to_write as usize;
+                address += to_write;
+            }
+
+            self.write_addr += written as u32;
+            self.remaining -= min(self.remaining, written as u32);
+
+            Ok(()) 
         }
 
-        pub fn process_read_flash(&mut self, params: &ReadFlashParams) -> Result<(), Error> {
+        fn flash_defl_data(&mut self, data: &[u8]) -> Result<(), Error> {
+            use crate::miniz_types::TinflStatus::*;
+            
+            const OUT_BUFFER_SIZE: usize = 0x8000; //32768;
+            static mut DECOMPRESS_BUF: [u8; OUT_BUFFER_SIZE] = [0; OUT_BUFFER_SIZE];
+            static mut DECOMPRESS_INDEX: usize = 0;
+            
+            let mut out_index = unsafe{ DECOMPRESS_INDEX };
+            let out_buf = unsafe{ &mut DECOMPRESS_BUF };
+            let mut in_index = 0;
+            let mut length = data.len();
+            let mut status = NeedsMoreInput;
+            let mut flags = TINFL_FLAG_PARSE_ZLIB_HEADER;
+            
+            while length > 0 && self.remaining > 0 && status != Done {
+                let mut in_bytes = length;
+                let mut out_bytes = out_buf.len() - out_index;
+                let next_out: *mut u8 = out_buf[out_index..].as_mut_ptr();
+                
+                if self.remaining_compressed > length {
+                    flags |= TINFL_FLAG_HAS_MORE_INPUT;
+                }
+    
+                status = target::decompress(
+                    &mut self.decompressor,
+                    data[in_index..].as_ptr(),
+                    &mut in_bytes,
+                    out_buf.as_mut_ptr(),
+                    next_out,
+                    &mut out_bytes,
+                    flags);
+
+                self.remaining_compressed -= in_bytes;
+                length -= in_bytes;
+                in_index += in_bytes;
+                out_index += out_bytes;
+
+                if status == Done || out_index == OUT_BUFFER_SIZE {
+                    self.flash_data(&out_buf[..out_index])?;
+                    self.total_decompressed_size += out_index;
+                    out_index = 0;
+                }
+            }
+
+            unsafe{ DECOMPRESS_INDEX = out_index }; 
+
+            // error won't get sent back to esptool.py until next block is sent
+            if status < Done {
+                self.last_error = Some(InflateError);
+            } else if status == Done && self.remaining > 0 {
+                self.last_error = Some(NotEnoughData);
+            } else if status != Done && self.remaining == 0 {
+                self.last_error = Some(TooMuchData);
+            }
+            
+            Ok(())
+        }
+
+        fn process_data(&mut self, cmd: &DataCommand, data: &[u8]) -> Result<(), Error> {
+            
+            let checksum: u8 = data.iter().fold(0xEF, |acc, x| acc ^ x);
+
+            if !self.in_flash_mode {
+                return Err(NotInFlashMode);
+            } else if cmd.size != data.len() as u32 {
+                return Err(BadDataLen);
+            } else if cmd.base.checksum != checksum as u32 {
+                return Err(BadDataChecksum);
+            }
+
+            match cmd.base.code {
+                FlashDeflData => self.flash_defl_data(data)?,
+                FlashData => self.flash_data(data)?,
+                MemData => self.write_ram(data)?,
+                _ => ()
+            }
+
+            Ok(())
+        }
+
+        fn process_read_flash(&mut self, params: &ReadFlashParams) -> Result<(), Error> {
             // Can return FailedSpiOp (?)
             const BUF_SIZE: usize = FLASH_SECTOR_SIZE as usize;
             let mut buffer: [u8; BUF_SIZE] = [0; BUF_SIZE];
@@ -200,7 +357,7 @@ pub mod stub
         }
 
         #[allow(unreachable_patterns)]
-        pub fn process_cmd(&mut self, payload: &[u8], 
+        fn process_cmd(&mut self, payload: &[u8], 
                             code: CommandCode, 
                             response: &mut Response) -> Result<bool, Error> {
             
@@ -227,11 +384,7 @@ pub mod stub
                 }
                 FlashEnd | MemEnd | FlashDeflEnd => {
                     let cmd = transmute!(payload, EndCommand)?;
-                    if cmd.run_user_code == 1 {
-                        self.send_response(&response)?;
-                        delay_us(10000);
-                        soft_reset();
-                    }
+                    self.process_end(&cmd, &response)?;
                 }
                 SpiFlashMd5 => {
                     let cmd = transmute!(payload, SpiFlashMd5Command)?;
@@ -271,7 +424,7 @@ pub mod stub
                     todo!();
                 }
                 _ => {
-                    return Err(Error::InvalidCommand);
+                    return Err(InvalidCommand);
                 }
             };
 
@@ -298,22 +451,6 @@ pub mod stub
             let data = read_packet(self.io, buffer)?;
             Ok(data)
         }
-    }
-
-    pub fn calculate_md5(mut address: u32, mut size: u32) -> Result<[u8; 16], Error> {
-        let mut buffer: [u8; FLASH_SECTOR_SIZE as usize] = [0; FLASH_SECTOR_SIZE as usize];
-        let mut hasher = Md5::new();
-
-        while size > 0 {
-            let to_read = min(size, FLASH_SECTOR_SIZE);
-            target::spi_flash_read(address, &mut buffer)?;
-            hasher.update(&buffer[0..to_read as usize]);
-            size -= to_read;
-            address += to_read;
-        }
-
-        let result: [u8; 16] = hasher.finalize().into();
-        Ok(result)
     }
 }
 

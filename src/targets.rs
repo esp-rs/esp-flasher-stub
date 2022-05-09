@@ -2,6 +2,8 @@
 #[cfg(test)]
 use mockall::automock;
 
+use crate::miniz_types::*;
+
 #[allow(unused)]
 extern "C" {
     fn esp_rom_spiflash_erase_chip() -> i32;
@@ -23,6 +25,15 @@ extern "C" {
     fn ets_efuse_get_spiconfig() -> u32;
     fn software_reset();
     fn ets_delay_us(timeout: u32);
+    pub fn tinfl_decompress(
+        r: *mut tinfl_decompressor, 
+        in_buf: *const u8, 
+        in_buf_size: *mut usize, 
+        out_buf_start: *mut u8, 
+        out_buf_next: *mut u8, 
+        out_buf_size: *mut usize, 
+        flags: u32
+    ) -> TinflStatus;
 }
 
 
@@ -30,7 +41,7 @@ extern "C" {
 pub mod esp32c3 {
     use crate::commands::*;
     use crate::commands::Error::*;
-    use crate::commands::CommandCode::*;
+    // use crate::commands::CommandCode::*;
     use super::*;
 
     const SPI_BASE_REG: u32 = 0x60002000;
@@ -80,41 +91,11 @@ pub mod esp32c3 {
         unsafe { *(address as *mut u32) = value; }
     }
 
-    pub fn memory_write(mem_type: CommandCode, mut address: u32, data: &[u8]) -> Result<(), Error> {
-
-        let result = match mem_type {
-            FlashData => {
-                let mut remaining = data.len() as u32;
-                let mut written = 0;
-
-                while remaining > 0 {
-                    let to_write = core::cmp::min(FLASH_SECTOR_SIZE, remaining);
-                    let data_ptr = data[written..].as_ptr();
-                    let err = unsafe { esp_rom_spiflash_write(address, data_ptr, to_write) };
-                    if err != 0 { 
-                        return Err(Error::FailedSpiOp);
-                    }
-                    remaining -= to_write;
-                    written += to_write as usize;
-                    address += to_write;
-                }
-                Ok(()) 
-            },
-            MemData => {
-                if data.len() % 4 != 0 {
-                    Err(Error::BadDataLen)
-                } else {
-                    let addr = address as *mut u32;
-                    let (_, data_u32, _) = unsafe{ data.align_to::<u32>() };
-                    for word in data_u32 {
-                        unsafe{ *addr = *word }; 
-                    }
-                    Ok(())
-                }
-            },
-            _ => Ok(())
-        };
-        result
+    pub fn spiflash_write(dest_addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
+        match unsafe{ esp_rom_spiflash_write(dest_addr, data, len) } {
+            0 => Ok(()),
+            _ => Err(FailedSpiOp)
+        }
     }
 
     pub fn spi_set_params(params: &SpiParams) -> Result<(), Error> {
@@ -126,7 +107,7 @@ pub mod esp32c3 {
             params.page_size,
             params.status_mask) };
 
-        if result == 0 { Ok(()) } else { Err(Error::FailedSpiOp) }
+        if result == 0 { Ok(()) } else { Err(FailedSpiOp) }
     }
     
     pub fn spi_set_default_params() -> Result<(), Error> {
@@ -154,7 +135,7 @@ pub mod esp32c3 {
         // Returns 1 or 2 in case of failure
         match unsafe{ esp_rom_spiflash_erase_chip() } {
             0 => Ok(()),
-            _ => Err(Error::FailedSpiOp)
+            _ => Err(FailedSpiOp)
         }
     }
 
@@ -172,7 +153,7 @@ pub mod esp32c3 {
 
         // match unsafe{ esp_rom_spiflash_erase_block(address / FLASH_BLOCK_SIZE) } {  // ???
         //     0 => Ok(()),
-        //     _ => Err(Error::FailedSpiOp)
+        //     _ => Err(FailedSpiOp)
         // }
     }
 
@@ -233,7 +214,7 @@ pub mod esp32c3 {
 
         match unsafe{ esp_rom_spiflash_read(address, data_ptr, data_len) } {
             0 => Ok(()),
-            _ => Err(Error::Err0x63)
+            _ => Err(Err0x63)
         }
     }
 
@@ -255,5 +236,25 @@ pub mod esp32c3 {
 
     pub fn delay_us(micro_seconds: u32) {
         unsafe{ ets_delay_us(micro_seconds) };
+    }
+
+    pub fn decompress(
+        r: *mut tinfl_decompressor, 
+        in_buf: *const u8, 
+        in_buf_size: *mut usize, 
+        out_buf_start: *mut u8, 
+        out_buf_next: *mut u8, 
+        out_buf_size: *mut usize, 
+        flags: u32
+    ) -> TinflStatus {
+        unsafe { tinfl_decompress(
+            r, 
+            in_buf,
+            in_buf_size,
+            out_buf_start,
+            out_buf_next,
+            out_buf_size,
+            flags,
+        ) }
     }
 }

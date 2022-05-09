@@ -5,6 +5,7 @@
 mod protocol;
 mod commands;
 mod targets;
+mod miniz_types;
 
 // #[cfg(not(test))]
 mod main {
