@@ -1,14 +1,11 @@
 const TINFL_MAX_HUFF_TABLES: usize = 3;
 const TINFL_MAX_HUFF_SYMBOLS_0: usize = 288;
 const TINFL_MAX_HUFF_SYMBOLS_1: usize = 32;
-const TINFL_MAX_HUFF_SYMBOLS_2: usize = 19;
 const TINFL_FAST_LOOKUP_BITS: usize = 10;
 const TINFL_FAST_LOOKUP_SIZE: usize = 1 << TINFL_FAST_LOOKUP_BITS;
 
 pub const TINFL_FLAG_PARSE_ZLIB_HEADER: u32 = 1;
 pub const TINFL_FLAG_HAS_MORE_INPUT: u32 = 2;
-pub const TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF: u32 = 4;
-pub const TINFL_FLAG_COMPUTE_ADLER32: u32 = 8;
 
 #[repr(C)]
 #[derive(PartialEq, PartialOrd)]
@@ -85,4 +82,17 @@ impl Default for tinfl_decompressor {
             len_codes: [0; TINFL_MAX_HUFF_SYMBOLS_0 + TINFL_MAX_HUFF_SYMBOLS_1 + 137]
         }
     }
+}
+
+#[allow(unused)]
+extern "C" {
+    pub fn tinfl_decompress(
+        r: *mut tinfl_decompressor, 
+        in_buf: *const u8, 
+        in_buf_size: *mut usize, 
+        out_buf_start: *mut u8, 
+        out_buf_next: *mut u8, 
+        out_buf_size: *mut usize, 
+        flags: u32
+    ) -> TinflStatus;
 }

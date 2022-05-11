@@ -1,4 +1,3 @@
-
 #[cfg(test)]
 use mockall::automock;
 
@@ -14,35 +13,22 @@ extern "C" {
     /// address (4 byte alignment), data, length
     fn esp_rom_spiflash_read(src_addr: u32, data: *const u8, len: u32) -> i32;
     fn esp_rom_spiflash_unlock() -> i32;
-    // fn esp_rom_spiflash_lock(); // can't find in idf defs?
     fn esp_rom_spiflash_attach(config: u32, legacy: bool);
     fn esp_rom_spiflash_config_param(device_id: u32, chip_size: u32, block_size: u32, 
                                      sector_size: u32, page_size: u32, status_mask: u32) -> u32;
-
     fn uart_tx_one_char(byte: u8);
     fn uart_div_modify(uart_number: u32, baud_div: u32);
-
     fn ets_efuse_get_spiconfig() -> u32;
     fn software_reset();
     fn ets_delay_us(timeout: u32);
-    pub fn tinfl_decompress(
-        r: *mut tinfl_decompressor, 
-        in_buf: *const u8, 
-        in_buf_size: *mut usize, 
-        out_buf_start: *mut u8, 
-        out_buf_next: *mut u8, 
-        out_buf_size: *mut usize, 
-        flags: u32
-    ) -> TinflStatus;
 }
 
 
 #[cfg_attr(test, automock)]
 pub mod esp32c3 {
+    use super::*;
     use crate::commands::*;
     use crate::commands::Error::*;
-    // use crate::commands::CommandCode::*;
-    use super::*;
 
     const SPI_BASE_REG: u32 = 0x60002000;
     const SPI_CMD_REG: u32 = SPI_BASE_REG + 0x00;
@@ -108,19 +94,6 @@ pub mod esp32c3 {
             params.status_mask) };
 
         if result == 0 { Ok(()) } else { Err(FailedSpiOp) }
-    }
-    
-    pub fn spi_set_default_params() -> Result<(), Error> {
-        let params = SpiParams {
-            id: 0,
-            total_size: FLASH_MAX_SIZE,
-            block_size: FLASH_BLOCK_SIZE,
-            sector_size: FLASH_SECTOR_SIZE,
-            page_size: FLASH_PAGE_SIZE,
-            status_mask: FLASH_STATUS_MASK,
-        };
-
-        spi_set_params(&params)
     }
 
     pub fn spi_attach(param: u32) {
@@ -188,11 +161,9 @@ pub mod esp32c3 {
     pub fn erase_region(address: u32, size: u32) -> Result<(), Error> {
         if address % FLASH_SECTOR_SIZE != 0 {
             return Err(Err0x32);
-        }
-        if size % FLASH_SECTOR_SIZE != 0 {
+        } else if size % FLASH_SECTOR_SIZE != 0 {
             return Err(Err0x33);
-        }
-        if unsafe{ esp_rom_spiflash_unlock() } != 0 {
+        } else if unsafe{ esp_rom_spiflash_unlock() } != 0 {
             return Err(Err0x34);
         }
 
@@ -226,8 +197,27 @@ pub mod esp32c3 {
         }
     }
 
-    pub fn read_gpio_strap_reg() -> u32 {
-        read_register(GPIO_STRAP_REG)
+    pub fn init() -> Result<(), Error> {
+        let mut spiconfig = unsafe{ ets_efuse_get_spiconfig() };
+
+        let strapping = read_register(GPIO_STRAP_REG);
+
+        if spiconfig == 0 && (strapping & 0x1c) == 0x08 {
+            spiconfig = 1; /* HSPI flash mode */
+        }
+
+        spi_attach(spiconfig);
+
+        let deafault_params = SpiParams {
+            id: 0,
+            total_size: FLASH_MAX_SIZE,
+            block_size: FLASH_BLOCK_SIZE,
+            sector_size: FLASH_SECTOR_SIZE,
+            page_size: FLASH_PAGE_SIZE,
+            status_mask: FLASH_STATUS_MASK,
+        };
+
+        spi_set_params(&deafault_params)
     }
 
     pub fn soft_reset() {
