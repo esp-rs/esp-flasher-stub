@@ -44,7 +44,7 @@ REGION_ALIAS("REGION_RWTEXT", IRAM);
 REGION_ALIAS("REGION_RTC_FAST", RTC_FAST);
 
 
-ENTRY(_start_hal)
+ENTRY(_start_hal) /* _start_hal */
 PROVIDE(_start_trap = _start_trap_hal);
 
 PROVIDE(_stext = ORIGIN(REGION_TEXT));
@@ -97,53 +97,10 @@ SECTIONS
     . = ABSOLUTE(_stext);
   } > REGION_TEXT
 
-  .text _stext :
-  {
-    _stext = .;
-    /* Put reset handler first in .text section so it ends up as the entry */
-    /* point of the program. */
-    /* KEEP(*(.init));
-    KEEP(*(.init.rust));
-    . = ALIGN(4);
-    (*(.trap));
-    (*(.trap.rust));
-
-    *(.text .text.*); */
-    _etext = .;
-  } > REGION_TEXT
-
-  /**
-   * This dummy section represents the .text section but in rodata.
-   * Thus, it must have its alignement and (at least) its size.
-   */
-  .text_dummy (NOLOAD):
-  {
-    /* Start at the same alignement constraint than .text */
-    . = ALIGN(ALIGNOF(.text));
-    /* Create an empty gap as big as .text section */
-    . = . + SIZEOF(.text);
-    /* Prepare the alignement of the section above. Few bytes (0x20) must be
-     * added for the mapping header. */
-    . = ALIGN(0x10000) + 0x20;
-  } > REGION_RODATA
-
-  .rodata : ALIGN(4)
-  {
-    _srodata = .;
-    *(.srodata .srodata.*);
-    *(.rodata .rodata.*);
-
-    /* 4-byte align the end (VMA) of this section.
-       This is required by LLD to ensure the LMA of the following .data
-       section will have the correct alignment. */
-    . = ALIGN(4);
-    _erodata = .;
-  } > REGION_RODATA
-
-  .rwtext : ALIGN(4) {
-    _irwtext = LOADADDR(.rwtext);
+  .text : ALIGN(4) {
+    _irwtext = LOADADDR(.text);
     _srwtext = .;
-    *(.rwtext);
+    *(.text);
     . = ALIGN(4);
 
     KEEP(*(.init));
@@ -158,8 +115,8 @@ SECTIONS
 
   /* similar as text_dummy */
   .ram_dummy (NOLOAD) : {
-    . = ALIGN(ALIGNOF(.rwtext));
-    . = . + SIZEOF(.rwtext);
+    . = ALIGN(ALIGNOF(.text));
+    . = . + SIZEOF(.text);
   } > REGION_DATA
 
   .data : ALIGN(4)
@@ -170,6 +127,7 @@ SECTIONS
     PROVIDE(__global_pointer$ = . + 0x800);
     *(.sdata .sdata.* .sdata2 .sdata2.*);
     *(.data .data.*);
+    *(.rodata .rodata.*);
     . = ALIGN(4);
     _edata = .;
   } > REGION_DATA
@@ -259,10 +217,6 @@ BUG(riscv-rt): .bss is not 4-byte aligned");
 
 ASSERT(_sheap % 4 == 0, "
 BUG(riscv-rt): start of .heap is not 4-byte aligned");
-
-ASSERT(_stext + SIZEOF(.text) < ORIGIN(REGION_TEXT) + LENGTH(REGION_TEXT), "
-ERROR(riscv-rt): The .text section must be placed inside the REGION_TEXT region.
-Set _stext to an address smaller than 'ORIGIN(REGION_TEXT) + LENGTH(REGION_TEXT)'");
 
 ASSERT(SIZEOF(.stack) > (_max_hart_id + 1) * _hart_stack_size, "
 ERROR(riscv-rt): .stack section is too small for allocating stacks for all the harts.

@@ -39,10 +39,12 @@ pub enum CommandCode
     FlashDeflData = 0x11,
     FlashDeflEnd = 0x12,
     SpiFlashMd5 = 0x13,
+    GetSecurityInfo = 0x14,
     EraseFlash = 0xD0,
     EraseRegion = 0xD1,
     ReadFlash = 0xD2,
     RunUserCode = 0xD3,
+    FlashEncryptedData = 0xD4,
 }
 
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -149,7 +151,7 @@ pub struct EraseRegionCommand {
 }
 
 // Possibly move to other module
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 #[repr(C, packed(1))]
 pub struct ReadFlashParams {
     pub address: u32,
@@ -158,7 +160,7 @@ pub struct ReadFlashParams {
     pub max_inflight: u32,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 #[repr(C, packed(1))]
 pub struct ReadFlashCommand {
     pub base: CommandBase,

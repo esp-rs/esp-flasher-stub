@@ -36,12 +36,11 @@ dependencies = [
 
 [[package]]
 name = "atomic-polyfill"
-version = "0.1.6"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee6adc1648f03fbc1bc1b5cf0f2fdfb5edbc96215b711edcfe6ce2641ef9b347"
+checksum = "e14bf7b4f565e5e717d7a7a65b2a05c0b8c96e4db636d6f780f03b15108cdd1b"
 dependencies = [
  "critical-section",
- "riscv-target",
 ]
 
 [[package]]
@@ -129,14 +128,14 @@ dependencies = [
 
 [[package]]
 name = "critical-section"
-version = "0.2.5"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01e191a5a6f6edad9b679777ef6b6c0f2bdd4a333f2ecb8f61c3e28109a03d70"
+checksum = "95da181745b56d4bd339530ec393508910c909c784e8962d15d722bacf0bcbcd"
 dependencies = [
  "bare-metal 1.0.0",
  "cfg-if 1.0.0",
  "cortex-m",
- "riscv",
+ "riscv 0.7.0",
 ]
 
 [[package]]
@@ -232,7 +231,7 @@ dependencies = [
  "esp32c3",
  "nb 1.0.0",
  "paste",
- "riscv",
+ "riscv 0.7.0",
  "riscv-atomic-emulation-trap",
  "void",
 ]
@@ -254,7 +253,7 @@ version = "0.3.0"
 source = "git+https://github.com/esp-rs/esp-pacs.git?branch=with_source#91102d1de0bba040e2523f423d73f8d24332c4fa"
 dependencies = [
  "bare-metal 1.0.0",
- "riscv",
+ "riscv 0.7.0",
  "riscv-rt",
  "vcell",
 ]
@@ -268,7 +267,7 @@ dependencies = [
  "esp-hal-common",
  "nb 1.0.0",
  "r0",
- "riscv",
+ "riscv 0.7.0",
  "riscv-atomic-emulation-trap",
  "riscv-rt",
  "void",
@@ -316,12 +315,13 @@ dependencies = [
 
 [[package]]
 name = "heapless"
-version = "0.7.10"
+version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d076121838e03f862871315477528debffdb7462fb229216ecef91b1a3eb31eb"
+checksum = "065681e99f9ef7e0e813702a0326aedbcbbde7db5e55f097aedd1bf50b9dca43"
 dependencies = [
  "atomic-polyfill",
  "hash32",
+ "rustc_version 0.4.0",
  "spin",
  "stable_deref_trait",
 ]
@@ -616,12 +616,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "riscv"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e2856a701069e2d262b264750d382407d272d5527f7a51d3777d1805b4e2d3c"
+dependencies = [
+ "bare-metal 1.0.0",
+ "bit_field",
+ "embedded-hal",
+]
+
+[[package]]
 name = "riscv-atomic-emulation-trap"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89d8ed35d10950305d9abbc3fa49540b948e03b653c85012b4cd9f7d249029f0"
 dependencies = [
- "riscv",
+ "riscv 0.7.0",
  "riscv-rt",
  "riscv-target",
 ]
@@ -633,7 +644,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab9f28dc850356196a36078c51c9dc7b46014a29a8fde35d5f81c99e489d0e00"
 dependencies = [
  "r0",
- "riscv",
+ "riscv 0.7.0",
  "riscv-rt-macros",
  "riscv-target",
 ]
@@ -731,6 +742,7 @@ name = "stub"
 version = "0.1.0"
 dependencies = [
  "assert2",
+ "bare-metal 1.0.0",
  "embedded-hal",
  "esp-hal-common",
  "esp32c3-hal",
@@ -740,6 +752,8 @@ dependencies = [
  "mockall",
  "mockall_double",
  "nb 1.0.0",
+ "r0",
+ "riscv 0.8.0",
  "riscv-rt",
 ]
 

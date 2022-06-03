@@ -79,4 +79,5 @@ PROVIDE( ets_get_cpu_frequency = 0x40000584 );
 PROVIDE( software_reset = 0x40000090 );
 PROVIDE( ets_delay_us = 0x40000050 );
 PROVIDE( tinfl_decompress = 0x400000f4 );
+PROVIDE( GetSecurityInfoProc = 0x4004b9da );
 /* Do not exceed this mark in the error messages above                                    | */

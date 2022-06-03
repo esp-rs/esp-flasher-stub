@@ -21,6 +21,10 @@ extern "C" {
     fn ets_efuse_get_spiconfig() -> u32;
     fn software_reset();
     fn ets_delay_us(timeout: u32);
+    fn GetSecurityInfoProc(pMsg: u8, pnErr: u8, data: *const u8) -> u32;
+    fn esp_rom_spiflash_write_encrypted_enable();
+    fn esp_rom_spiflash_write_encrypted_disable();
+    fn esp_rom_spiflash_write_encrypted(dest_addr: u32, data: *const u8, len: u32) -> i32;
 }
 
 
@@ -29,6 +33,7 @@ pub mod esp32c3 {
     use super::*;
     use crate::commands::*;
     use crate::commands::Error::*;
+    use core::ptr::{read_volatile, write_volatile};
 
     const SPI_BASE_REG: u32 = 0x60002000;
     const SPI_CMD_REG: u32 = SPI_BASE_REG + 0x00;
@@ -53,6 +58,8 @@ pub mod esp32c3 {
     const UART_CLKDIV_FRAG_V: u32 = 0xF;
     pub const FLASH_SECTOR_SIZE: u32 = 4096;
     pub const FLASH_BLOCK_SIZE: u32 = 65536;
+    pub const FLASH_SECTOR_MASK: u32 = 0xFFFFF000;
+    pub const MAX_WRITE_BLOCK: usize = 0x4000;
 
     const GPIO_BASE_REG: u32 = 0x60004000;
     const GPIO_STRAP_REG: u32 = GPIO_BASE_REG + 0x38;
@@ -60,6 +67,8 @@ pub mod esp32c3 {
     const FLASH_MAX_SIZE: u32 = 16*1024*1024;
     const FLASH_PAGE_SIZE: u32 = 256;
     const FLASH_STATUS_MASK: u32 = 0xFFFF;
+
+    const SECURITY_INFO_BYTES : usize = 20;
 
     fn get_uart_div(current_baud: u32, new_baud: u32) -> u32 {
         let clock_div_reg = read_register(UART0_CLKDIV_REG);
@@ -70,11 +79,11 @@ pub mod esp32c3 {
     }
 
     pub fn read_register(address: u32) -> u32 {
-        unsafe { *(address as *const u32) }
+        unsafe{ read_volatile(address as *const u32) }
     }
     
     pub fn write_register(address: u32, value: u32) {
-        unsafe { *(address as *mut u32) = value; }
+        unsafe{ write_volatile(address as *mut _, value) }
     }
 
     pub fn spiflash_write(dest_addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
@@ -123,11 +132,6 @@ pub mod esp32c3 {
         while read_register(SPI_CMD_REG) != 0 { }
 
         spiflash_wait_for_ready();
-
-        // match unsafe{ esp_rom_spiflash_erase_block(address / FLASH_BLOCK_SIZE) } {  // ???
-        //     0 => Ok(()),
-        //     _ => Err(FailedSpiOp)
-        // }
     }
 
     fn wait_for_ready() {
@@ -197,7 +201,18 @@ pub mod esp32c3 {
         }
     }
 
-    pub fn init() -> Result<(), Error> {
+    // ESP32S2_OR_LATER && !ESP32H2BETA2
+    pub fn get_security_info() -> Result<[u8; SECURITY_INFO_BYTES], Error>
+    {
+        let mut buf: [u8; SECURITY_INFO_BYTES] = [0; SECURITY_INFO_BYTES];
+
+        match unsafe{ GetSecurityInfoProc(0, 0, buf.as_mut_ptr()) } {
+            0 => Ok(buf),
+            _ => Err(InvalidCommand), // Todo check ROM code for err val
+        }
+    }
+
+    pub fn init() {
         let mut spiconfig = unsafe{ ets_efuse_get_spiconfig() };
 
         let strapping = read_register(GPIO_STRAP_REG);
@@ -217,7 +232,7 @@ pub mod esp32c3 {
             status_mask: FLASH_STATUS_MASK,
         };
 
-        spi_set_params(&deafault_params)
+        let _ = spi_set_params(&deafault_params);
     }
 
     pub fn soft_reset() {
@@ -226,6 +241,20 @@ pub mod esp32c3 {
 
     pub fn delay_us(micro_seconds: u32) {
         unsafe{ ets_delay_us(micro_seconds) };
+    }
+
+    pub fn write_encrypted_enable() {
+        unsafe{ esp_rom_spiflash_write_encrypted_enable(); }
+    }
+    pub fn write_encrypted_disable() {
+        unsafe{ esp_rom_spiflash_write_encrypted_disable(); }
+    }
+
+    pub fn write_encrypted(addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
+        match unsafe{ esp_rom_spiflash_write_encrypted(addr, data, len) } {
+           0  => Ok(()),
+           _ => Err(FailedSpiOp)
+        }
     }
 
     pub fn decompress(
