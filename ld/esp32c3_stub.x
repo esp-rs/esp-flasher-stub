@@ -44,7 +44,7 @@ REGION_ALIAS("REGION_RWTEXT", IRAM);
 REGION_ALIAS("REGION_RTC_FAST", RTC_FAST);
 
 
-ENTRY(_start_hal) /* _start_hal */
+ENTRY(_start_hal)
 PROVIDE(_start_trap = _start_trap_hal);
 
 PROVIDE(_stext = ORIGIN(REGION_TEXT));
@@ -87,7 +87,6 @@ PROVIDE(_mp_hook = default_mp_hook);
   By default uses the riscv crates default trap handler
   but by providing the `_start_trap` symbol external crates can override.
 */
-PROVIDE(_start_trap = default_start_trap);
 
 SECTIONS
 {
@@ -100,15 +99,16 @@ SECTIONS
   .text : ALIGN(4) {
     _irwtext = LOADADDR(.text);
     _srwtext = .;
-    *(.text);
+    *(.init.literal .literal .text .init.literal.* .literal.* .text.* .rwtext .rwtext.*)
     . = ALIGN(4);
 
     KEEP(*(.init));
     KEEP(*(.init.rust));
-    . = ALIGN(4);
-    (*(.trap));
-    (*(.trap.rust));
-    *(.text .text.*);
+    KEEP(*(.trap));
+    KEEP(*(.trap.rust));
+
+    *(.iram1)
+    *(.iram1.*)
 
     _erwtext = .;
   } > REGION_RWTEXT
@@ -128,6 +128,8 @@ SECTIONS
     *(.sdata .sdata.* .sdata2 .sdata2.*);
     *(.data .data.*);
     *(.rodata .rodata.*);
+    *(.data1)
+    *(.srodata .srodata.*);
     . = ALIGN(4);
     _edata = .;
   } > REGION_DATA
@@ -185,51 +187,6 @@ SECTIONS
 }
 
 /* Do not exceed this mark in the error messages above                                    | */
-ASSERT(ORIGIN(REGION_TEXT) % 4 == 0, "
-ERROR(riscv-rt): the start of the REGION_TEXT must be 4-byte aligned");
-
-ASSERT(ORIGIN(REGION_RODATA) % 4 == 0, "
-ERROR(riscv-rt): the start of the REGION_RODATA must be 4-byte aligned");
-
-ASSERT(ORIGIN(REGION_DATA) % 4 == 0, "
-ERROR(riscv-rt): the start of the REGION_DATA must be 4-byte aligned");
-
-ASSERT(ORIGIN(REGION_HEAP) % 4 == 0, "
-ERROR(riscv-rt): the start of the REGION_HEAP must be 4-byte aligned");
-
-ASSERT(ORIGIN(REGION_TEXT) % 4 == 0, "
-ERROR(riscv-rt): the start of the REGION_TEXT must be 4-byte aligned");
-
-ASSERT(ORIGIN(REGION_STACK) % 4 == 0, "
-ERROR(riscv-rt): the start of the REGION_STACK must be 4-byte aligned");
-
-ASSERT(_stext % 4 == 0, "
-ERROR(riscv-rt): `_stext` must be 4-byte aligned");
-
-ASSERT(_sdata % 4 == 0 && _edata % 4 == 0, "
-BUG(riscv-rt): .data is not 4-byte aligned");
-
-ASSERT(_sidata % 4 == 0, "
-BUG(riscv-rt): the LMA of .data is not 4-byte aligned");
-
-ASSERT(_sbss % 4 == 0 && _ebss % 4 == 0, "
-BUG(riscv-rt): .bss is not 4-byte aligned");
-
-ASSERT(_sheap % 4 == 0, "
-BUG(riscv-rt): start of .heap is not 4-byte aligned");
-
-ASSERT(SIZEOF(.stack) > (_max_hart_id + 1) * _hart_stack_size, "
-ERROR(riscv-rt): .stack section is too small for allocating stacks for all the harts.
-Consider changing `_max_hart_id` or `_hart_stack_size`.");
-
-ASSERT(SIZEOF(.got) == 0, "
-.got section detected in the input files. Dynamic relocations are not
-supported. If you are linking to C code compiled using the `gcc` crate
-then modify your build script to compile the C code _without_ the
--fPIC flag. See the documentation of the `gcc::Config.fpic` method for
-details.");
-
-/* Do not exceed this mark in the error messages above                                    | */
 
 
 PROVIDE(interrupt1 = DefaultHandler);
@@ -263,3 +220,48 @@ PROVIDE(interrupt28 = DefaultHandler);
 PROVIDE(interrupt29 = DefaultHandler);
 PROVIDE(interrupt30 = DefaultHandler);
 PROVIDE(interrupt31 = DefaultHandler);
+
+PROVIDE(WIFI_MAC = DefaultHandler);
+PROVIDE(WIFI_MAC_NMI = DefaultHandler);
+PROVIDE(WIFI_PWR = DefaultHandler);
+PROVIDE(WIFI_BB = DefaultHandler);
+PROVIDE(BT_MAC = DefaultHandler);
+PROVIDE(BT_BB = DefaultHandler);
+PROVIDE(BT_BB_NMI = DefaultHandler);
+PROVIDE(RWBT = DefaultHandler);
+PROVIDE(RWBLE = DefaultHandler);
+PROVIDE(RWBT_NMI = DefaultHandler);
+PROVIDE(RWBLE_NMI = DefaultHandler);
+PROVIDE(UHCI0 = DefaultHandler);
+PROVIDE(GPIO = DefaultHandler);
+PROVIDE(GPIO_NMI = DefaultHandler);
+PROVIDE(SPI2 = DefaultHandler);
+PROVIDE(I2S = DefaultHandler);
+PROVIDE(UART0 = DefaultHandler);
+PROVIDE(UART1 = DefaultHandler);
+PROVIDE(LEDC = DefaultHandler);
+PROVIDE(EFUSE = DefaultHandler);
+PROVIDE(TWAI = DefaultHandler);
+PROVIDE(USB_SERIAL_JTAG = DefaultHandler);
+PROVIDE(RTC_CORE = DefaultHandler);
+PROVIDE(RMT = DefaultHandler);
+PROVIDE(I2C_EXT0 = DefaultHandler);
+PROVIDE(TG0_T0_LEVEL = DefaultHandler);
+PROVIDE(TG0_WDT_LEVEL = DefaultHandler);
+PROVIDE(TG1_T0_LEVEL = DefaultHandler);
+PROVIDE(TG1_WDT_LEVEL = DefaultHandler);
+PROVIDE(SYSTIMER_TARGET0 = DefaultHandler);
+PROVIDE(SYSTIMER_TARGET1 = DefaultHandler);
+PROVIDE(SYSTIMER_TARGET2 = DefaultHandler);
+PROVIDE(APB_ADC = DefaultHandler);
+PROVIDE(DMA_CH0 = DefaultHandler);
+PROVIDE(DMA_CH1 = DefaultHandler);
+PROVIDE(DMA_CH2 = DefaultHandler);
+PROVIDE(RSA = DefaultHandler);
+PROVIDE(AES = DefaultHandler);
+PROVIDE(SHA = DefaultHandler);
+PROVIDE(SW_INTR_0 = DefaultHandler);
+PROVIDE(SW_INTR_1 = DefaultHandler);
+PROVIDE(SW_INTR_2 = DefaultHandler);
+PROVIDE(SW_INTR_3 = DefaultHandler);
+PROVIDE(ASSIST_DEBUG = DefaultHandler);

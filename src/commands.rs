@@ -84,9 +84,17 @@ pub struct DataCommand {
 
 #[derive(PartialEq, Copy, Clone)]
 #[repr(C, packed(1))]
-pub struct EndCommand {
+pub struct EndFlashCommand {
     pub base: CommandBase,
     pub run_user_code: u32,
+}
+
+#[derive(PartialEq, Copy, Clone)]
+#[repr(C, packed(1))]
+pub struct MemEndCommand {
+    pub base: CommandBase,
+    pub stay_in_stub: u32,
+    pub entrypoint: fn(),
 }
 
 #[derive(PartialEq, Copy, Clone)]
