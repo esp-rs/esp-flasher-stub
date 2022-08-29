@@ -1,13 +1,12 @@
 use heapless::spsc::Queue;
-use esp32c3_hal::{ 
-    Serial,
-    pac::UART0,
-};
 use esp_hal_common::{ 
+    pac::{self, UART0},
+    Serial,
     serial::Instance, 
     interrupt,
     interrupt::CpuInterrupt::*,
     Cpu::*,
+    prelude::*,
 };
 use crate::protocol::InputIO;
 use crate::targets::esp32c3 as target;
@@ -30,8 +29,8 @@ impl<'a, T: Instance> InputIO for Serial<T> {
     }
 }
     
-#[no_mangle]
-pub fn interrupt3() {
+#[interrupt]
+fn UART0() {
     let uart = unsafe{ &*UART0::ptr() };
     let mut producer = unsafe { RX_QUEUE.split().0 };
     

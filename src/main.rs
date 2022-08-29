@@ -54,9 +54,9 @@ mod main {
         let mut serial = Serial::new(peripherals.UART0);
         serial.set_rx_fifo_full_threshold(1);
         serial.listen_rx_fifo_full();
-        interrupt::enable( ProCpu, pac::Interrupt::UART0, Interrupt3 );
+        interrupt::enable( pac::Interrupt::UART0, interrupt::Priority::Priority3 ).ok();
         interrupt::set_kind( ProCpu, Interrupt3, InterruptKind::Level );
-        interrupt::set_priority( ProCpu, Interrupt3, Priority::Priority10 );
+        unsafe{ interrupt::set_priority( ProCpu, Interrupt3, Priority::Priority10 ) };
         unsafe { riscv::interrupt::enable(); }
         
         let mut stub = Stub::new(&mut serial);
