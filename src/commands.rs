@@ -1,7 +1,7 @@
+#[allow(unused)]
 #[repr(u8)]
 #[derive(PartialEq, Copy, Clone, Debug)]
-pub enum Error
-{
+pub enum Error {
     NoError = 0,
     BadDataLen = 0xC0,
     BadDataChecksum = 0xC1,
@@ -22,9 +22,9 @@ pub enum Error
     Err0x35 = 0x35,
 }
 
+#[allow(unused)]
 #[derive(PartialEq, Copy, Clone, Debug)]
-pub enum Code
-{
+pub enum Code {
     FlashBegin = 0x02,
     FlashData = 0x03,
     FlashEnd = 0x04,
@@ -169,13 +169,20 @@ pub struct ReadFlash {
     pub params: ReadFlashParams,
 }
 
+#[allow(unused)]
 #[repr(u8)]
 #[derive(PartialEq, Copy, Clone, Debug)]
-enum Direction { In, Out }
+enum Direction {
+    In,
+    Out,
+}
 
 #[repr(u8)]
 #[derive(PartialEq, Copy, Clone)]
-enum Status { Success, Failure }
+enum Status {
+    Success,
+    Failure,
+}
 
 #[derive(PartialEq, Copy, Clone)]
 #[repr(C, packed(1))]
@@ -186,14 +193,13 @@ pub struct Response<'a> {
     value: u32,
     status: Status,
     error: Error,
-    pub data: &'a[u8]
+    pub data: &'a [u8],
 }
 
 // Size of sesponse without data reference
 pub const RESPONSE_SIZE: usize = 10;
 
 impl<'a> Response<'a> {
-
     pub fn new(cmd: Code) -> Self {
         Response {
             direction: Direction::Out,
@@ -210,7 +216,8 @@ impl<'a> Response<'a> {
         self.value = value;
     }
 
-    pub fn data(&mut self, data: &'a[u8]) {
+    #[allow(unused)]
+    pub fn data(&mut self, data: &'a [u8]) {
         self.size = 2 + data.len() as u16;
         self.data = data;
     }
