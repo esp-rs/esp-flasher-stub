@@ -44,13 +44,13 @@ REGION_ALIAS("REGION_RWTEXT", IRAM);
 REGION_ALIAS("REGION_RTC_FAST", RTC_FAST);
 
 
-ENTRY(_start_hal) /* _start_hal */
+ENTRY(_start_hal)
 PROVIDE(_start_trap = _start_trap_hal);
 
 PROVIDE(_stext = ORIGIN(REGION_TEXT));
 PROVIDE(_stack_start = ORIGIN(REGION_STACK) + LENGTH(REGION_STACK));
 PROVIDE(_max_hart_id = 0);
-PROVIDE(_hart_stack_size = 32K);
+PROVIDE(_hart_stack_size = 2K);
 PROVIDE(_heap_size = 0);
 
 PROVIDE(UserSoft = DefaultHandler);
@@ -83,12 +83,6 @@ PROVIDE(_setup_interrupts = default_setup_interrupts);
 */
 PROVIDE(_mp_hook = default_mp_hook);
 
-/* # Start trap function override
-  By default uses the riscv crates default trap handler
-  but by providing the `_start_trap` symbol external crates can override.
-*/
-PROVIDE(_start_trap = default_start_trap);
-
 SECTIONS
 {
   .text.dummy (NOLOAD) :
@@ -97,40 +91,62 @@ SECTIONS
     . = ABSOLUTE(_stext);
   } > REGION_TEXT
 
-  .text : ALIGN(4) {
-    _irwtext = LOADADDR(.text);
-    _srwtext = .;
-    *(.text);
-    . = ALIGN(4);
-
+  .text _stext :
+  {
+    /* Put reset handler first in .text section so it ends up as the entry */
+    /* point of the program. */
     KEEP(*(.init));
     KEEP(*(.init.rust));
     . = ALIGN(4);
-    (*(.trap));
-    (*(.trap.rust));
+    KEEP(*(.trap));
+    KEEP(*(.trap.rust));
+
     *(.text .text.*);
+    _etext = .;
+  } > REGION_TEXT
 
-    _erwtext = .;
-  } > REGION_RWTEXT
-
-  /* similar as text_dummy */
-  .ram_dummy (NOLOAD) : {
-    . = ALIGN(ALIGNOF(.text));
-    . = . + SIZEOF(.text);
-  } > REGION_DATA
-
-  .data : ALIGN(4)
+  _text_size = _etext - _stext + 8;
+  .rodata ORIGIN(DROM) + _text_size : AT(_text_size)
   {
-    _sidata = LOADADDR(.data);
+    _srodata = .;
+    *(.srodata .srodata.*);
+    *(.rodata .rodata.*);
+
+    /* 4-byte align the end (VMA) of this section.
+       This is required by LLD to ensure the LMA of the following .data
+       section will have the correct alignment. */
+    . = ALIGN(4);
+    _erodata = .;
+  } > REGION_RODATA
+
+  _rodata_size = _erodata - _srodata + 8;
+  .data ORIGIN(DRAM) : AT(_text_size + _rodata_size)
+  {
     _sdata = .;
     /* Must be called __global_pointer$ for linker relaxations to work. */
     PROVIDE(__global_pointer$ = . + 0x800);
     *(.sdata .sdata.* .sdata2 .sdata2.*);
     *(.data .data.*);
-    *(.rodata .rodata.*);
     . = ALIGN(4);
     _edata = .;
   } > REGION_DATA
+
+  _data_size = _edata - _sdata + 8;
+  .rwtext ORIGIN(REGION_RWTEXT) + _data_size : AT(_text_size + _rodata_size + _data_size){
+    _srwtext = .;
+    *(.rwtext);
+    . = ALIGN(4);
+    _erwtext = .;
+  } > REGION_RWTEXT
+  _rwtext_size = _erwtext - _srwtext + 8;
+
+  .rwtext.dummy (NOLOAD):
+  {
+    /* This section is required to skip .rwtext area because REGION_RWTEXT
+     * and REGION_BSS reflect the same address space on different buses.
+     */
+    . = ORIGIN(REGION_BSS) + _rwtext_size;
+  } > REGION_BSS
 
   .bss (NOLOAD) :
   {
@@ -138,6 +154,16 @@ SECTIONS
     *(.sbss .sbss.* .bss .bss.*);
     . = ALIGN(4);
     _ebss = .;
+  } > REGION_BSS
+
+  /* ### .uninit */
+  .uninit (NOLOAD) : ALIGN(4)
+  {
+    . = ALIGN(4);
+    __suninit = .;
+    *(.uninit .uninit.*);
+    . = ALIGN(4);
+    __euninit = .;
   } > REGION_BSS
 
   /* fictitious region that represents the memory available for the heap */
@@ -157,32 +183,53 @@ SECTIONS
     _sstack = .;
   } > REGION_STACK
 
-  .rtc_fast.text : ALIGN(4) {
+  .rtc_fast.text : AT(_text_size + _rodata_size + _data_size + _rwtext_size) {
+    _srtc_fast_text = .;
     *(.rtc_fast.literal .rtc_fast.text .rtc_fast.literal.* .rtc_fast.text.*)
-  } > REGION_RTC_FAST AT > REGION_RODATA
+    . = ALIGN(4);
+    _ertc_fast_text = .;
+  } > REGION_RTC_FAST
+  _fast_text_size = _ertc_fast_text - _srtc_fast_text + 8;
 
-  .rtc_fast.data : ALIGN(4) 
+  .rtc_fast.data : AT(_text_size + _rodata_size + _data_size + _rwtext_size + _fast_text_size)
   {
     _rtc_fast_data_start = ABSOLUTE(.);
     *(.rtc_fast.data .rtc_fast.data.*)
+    . = ALIGN(4);
     _rtc_fast_data_end = ABSOLUTE(.);
-  } > REGION_RTC_FAST AT > REGION_RODATA
+  } > REGION_RTC_FAST
+  _rtc_fast_data_size = _rtc_fast_data_end - _rtc_fast_data_start + 8;
 
- .rtc_fast.bss (NOLOAD) : ALIGN(4) 
+ .rtc_fast.bss (NOLOAD) : ALIGN(4)
   {
     _rtc_fast_bss_start = ABSOLUTE(.);
     *(.rtc_fast.bss .rtc_fast.bss.*)
+    . = ALIGN(4);
     _rtc_fast_bss_end = ABSOLUTE(.);
   } > REGION_RTC_FAST
 
- .rtc_fast.noinit (NOLOAD) : ALIGN(4) 
+ .rtc_fast.noinit (NOLOAD) : ALIGN(4)
   {
     *(.rtc_fast.noinit .rtc_fast.noinit.*)
   } > REGION_RTC_FAST
 
+  /* fake output .got section */
+  /* Dynamic relocations are unsupported. This section is only used to detect
+     relocatable code in the input files and raise an error if relocatable code
+     is found */
+  .got (INFO) :
+  {
+    KEEP(*(.got .got.*));
+  }
+
   .eh_frame (INFO) : { KEEP(*(.eh_frame)) }
   .eh_frame_hdr (INFO) : { *(.eh_frame_hdr) }
 }
+
+PROVIDE(_sidata = _erodata + 8);
+PROVIDE(_irwtext = ORIGIN(DROM) + _text_size + _rodata_size + _data_size);
+PROVIDE(_irtc_fast_text = ORIGIN(DROM) + _text_size + _rodata_size + _data_size + _rwtext_size);
+PROVIDE(_irtc_fast_data = ORIGIN(DROM) + _text_size + _rodata_size + _data_size + _rwtext_size + _fast_text_size);
 
 /* Do not exceed this mark in the error messages above                                    | */
 ASSERT(ORIGIN(REGION_TEXT) % 4 == 0, "
@@ -217,6 +264,10 @@ BUG(riscv-rt): .bss is not 4-byte aligned");
 
 ASSERT(_sheap % 4 == 0, "
 BUG(riscv-rt): start of .heap is not 4-byte aligned");
+
+ASSERT(_stext + SIZEOF(.text) < ORIGIN(REGION_TEXT) + LENGTH(REGION_TEXT), "
+ERROR(riscv-rt): The .text section must be placed inside the REGION_TEXT region.
+Set _stext to an address smaller than 'ORIGIN(REGION_TEXT) + LENGTH(REGION_TEXT)'");
 
 ASSERT(SIZEOF(.stack) > (_max_hart_id + 1) * _hart_stack_size, "
 ERROR(riscv-rt): .stack section is too small for allocating stacks for all the harts.
@@ -263,3 +314,5 @@ PROVIDE(interrupt28 = DefaultHandler);
 PROVIDE(interrupt29 = DefaultHandler);
 PROVIDE(interrupt30 = DefaultHandler);
 PROVIDE(interrupt31 = DefaultHandler);
+
+INCLUDE "device.x"

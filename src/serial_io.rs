@@ -1,15 +1,15 @@
-use heapless::spsc::Queue;
-use esp_hal_common::{ 
-    pac::{self, UART0},
-    Serial,
-    serial::Instance, 
+use esp32c3_hal::{
     interrupt,
-    interrupt::CpuInterrupt::*,
-    Cpu::*,
+    interrupt::CpuInterrupt,
+    pac::{self, UART0},
     prelude::*,
+    serial::Instance,
+    Cpu,
+    Serial,
 };
-use crate::protocol::InputIO;
-use crate::targets::esp32c3 as target;
+use heapless::spsc::Queue;
+
+use crate::{protocol::InputIO, targets::esp32c3 as target};
 
 const RX_QUEUE_SIZE: usize = target::MAX_WRITE_BLOCK + 0x400;
 static mut RX_QUEUE: Queue<u8, RX_QUEUE_SIZE> = Queue::new();
@@ -40,5 +40,5 @@ fn UART0() {
     }
     
     uart.int_clr.write(|w| w.rxfifo_full_int_clr().set_bit());
-    interrupt::clear(ProCpu, Interrupt3);
+    interrupt::clear(Cpu::ProCpu, CpuInterrupt::Interrupt3);
 }

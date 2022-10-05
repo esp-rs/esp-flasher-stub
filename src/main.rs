@@ -2,12 +2,14 @@
 #![cfg_attr(not(test), no_main)]
 #![allow(dead_code)]
 
-mod protocol;
+use esp32c3_hal::interrupt;
+
 mod commands;
-mod targets;
-mod miniz_types;
 mod dprint;
+mod miniz_types;
+mod protocol;
 mod serial_io;
+mod targets;
 
 // #[cfg(not(test))]
 mod main {

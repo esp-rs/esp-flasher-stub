@@ -4,10 +4,11 @@
 //! This is unsafe! It is asynchronous with normal UART1 usage and
 //! interrupts are not disabled.
 
-use esp_hal_common::pac::UART1;
-pub struct DebugLog {}
+use esp32c3_hal::{pac::UART1, prelude::nb};
 
 pub enum Error {}
+
+pub struct DebugLog {}
 
 impl DebugLog {
     pub fn count(&mut self) -> u16 {
@@ -20,7 +21,11 @@ impl DebugLog {
 
     fn write(&mut self, word: u8) -> nb::Result<(), Error> {
         if self.count() < 128 {
-            unsafe{ (*UART1::ptr()).fifo.write(|w| w.rxfifo_rd_byte().bits(word) ) };
+            unsafe {
+                (*UART1::ptr())
+                    .fifo
+                    .write(|w| w.rxfifo_rd_byte().bits(word))
+            };
             Ok(())
         } else {
             Err(nb::Error::WouldBlock)

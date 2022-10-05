@@ -1,8 +1,4 @@
-#![allow(dead_code)]
-
-use mockall_double::double;
-
-#[double]
+#[cfg_attr(test, mockall_double::double)]
 use crate::targets::esp32c3 as target;
 
 pub trait InputIO {
@@ -12,16 +8,18 @@ pub trait InputIO {
 
 type FlashFunc = fn(addr: u32, data: *const u8, len: u32) -> Result<(), Error>;
 
-use target::*;
+use core::{cmp::min, mem::size_of, slice};
+
+use md5::{Digest, Md5};
 use slip::*;
-use core::mem::size_of;
-use core::slice;
-use core::cmp::min;
-use crate::commands;
-use crate::commands::{ Response, RESPONSE_SIZE, Code, Code::*, Error, Error::* };
-use md5::{Md5, Digest};
-use crate::miniz_types::*;
-use crate::dprintln;
+use target::*;
+
+use crate::{
+    commands,
+    commands::{Code, Code::*, Error, Error::*, Response, RESPONSE_SIZE},
+    dprintln,
+    miniz_types::*,
+};
 
 const DATA_CMD_SIZE: usize = size_of::<commands::Data>();
 const CMD_BASE_SIZE: usize = size_of::<commands::Base>();
