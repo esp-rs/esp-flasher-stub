@@ -16,11 +16,10 @@ static mut RX_QUEUE: Queue<u8, RX_QUEUE_SIZE> = Queue::new();
 
 impl<'a, T: Instance> InputIO for Serial<T> {
     fn recv(&mut self) -> u8 {
-        let mut consumer = unsafe { RX_QUEUE.split().1 };
-
-        unsafe{
-            while consumer.ready() == false { }
-            consumer.dequeue_unchecked()
+        loop {
+            if let Some(byte) = unsafe { RX_QUEUE.dequeue() } {
+                return byte;
+            }
         }
     }
 
@@ -28,17 +27,16 @@ impl<'a, T: Instance> InputIO for Serial<T> {
         self.write_bytes(bytes).unwrap()
     }
 }
-    
+
 #[interrupt]
 fn UART0() {
-    let uart = unsafe{ &*UART0::ptr() };
-    let mut producer = unsafe { RX_QUEUE.split().0 };
-    
+    let uart = unsafe { &*UART0::ptr() };
+
     while uart.status.read().rxfifo_cnt().bits() > 0 {
         let data = uart.fifo.read().rxfifo_rd_byte().bits();
-        unsafe{ producer.enqueue_unchecked(data) };
+        unsafe { RX_QUEUE.enqueue(data).unwrap() };
     }
-    
+
     uart.int_clr.write(|w| w.rxfifo_full_int_clr().set_bit());
     interrupt::clear(Cpu::ProCpu, CpuInterrupt::Interrupt3);
 }
