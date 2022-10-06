@@ -1,4 +1,4 @@
-use crate::miniz_types::*;
+use crate::miniz_types::{tinfl_decompress, tinfl_decompressor, TinflStatus};
 
 #[allow(unused)]
 extern "C" {
@@ -35,7 +35,7 @@ pub mod esp32c3 {
     use core::ptr::{read_volatile, write_volatile};
 
     use super::*;
-    use crate::commands::{Error::*, *};
+    use crate::commands::{Error, SpiParams};
 
     const SPI_BASE_REG: u32 = 0x60002000;
     const SPI_CMD_REG: u32 = SPI_BASE_REG + 0x00;
@@ -91,7 +91,7 @@ pub mod esp32c3 {
     pub fn spiflash_write(dest_addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
         match unsafe { esp_rom_spiflash_write(dest_addr, data, len) } {
             0 => Ok(()),
-            _ => Err(FailedSpiOp),
+            _ => Err(Error::FailedSpiOp),
         }
     }
 
@@ -110,7 +110,7 @@ pub mod esp32c3 {
         if result == 0 {
             Ok(())
         } else {
-            Err(FailedSpiOp)
+            Err(Error::FailedSpiOp)
         }
     }
 
@@ -126,7 +126,7 @@ pub mod esp32c3 {
         // Returns 1 or 2 in case of failure
         match unsafe { esp_rom_spiflash_erase_chip() } {
             0 => Ok(()),
-            _ => Err(FailedSpiOp),
+            _ => Err(Error::FailedSpiOp),
         }
     }
 
@@ -173,11 +173,11 @@ pub mod esp32c3 {
 
     pub fn erase_region(address: u32, size: u32) -> Result<(), Error> {
         if address % FLASH_SECTOR_SIZE != 0 {
-            return Err(Err0x32);
+            return Err(Error::Err0x32);
         } else if size % FLASH_SECTOR_SIZE != 0 {
-            return Err(Err0x33);
+            return Err(Error::Err0x33);
         } else if unsafe { esp_rom_spiflash_unlock() } != 0 {
-            return Err(Err0x34);
+            return Err(Error::Err0x34);
         }
 
         let sector_start = address / FLASH_SECTOR_SIZE;
@@ -185,7 +185,7 @@ pub mod esp32c3 {
 
         for sector in sector_start..sector_end {
             if unsafe { esp_rom_spiflash_erase_sector(sector) } != 0 {
-                return Err(Err0x35);
+                return Err(Error::Err0x35);
             }
         }
 
@@ -198,13 +198,13 @@ pub mod esp32c3 {
 
         match unsafe { esp_rom_spiflash_read(address, data_ptr, data_len) } {
             0 => Ok(()),
-            _ => Err(Err0x63),
+            _ => Err(Error::Err0x63),
         }
     }
 
     pub fn unlock_flash() -> Result<(), Error> {
         if unsafe { esp_rom_spiflash_unlock() } != 0 {
-            Err(FailedSpiUnlock)
+            Err(Error::FailedSpiUnlock)
         } else {
             Ok(())
         }
@@ -216,7 +216,7 @@ pub mod esp32c3 {
 
         match unsafe { GetSecurityInfoProc(0, 0, buf.as_mut_ptr()) } {
             0 => Ok(buf),
-            _ => Err(InvalidCommand), // Todo check ROM code for err val
+            _ => Err(Error::InvalidCommand), // Todo check ROM code for err val
         }
     }
 
@@ -265,7 +265,7 @@ pub mod esp32c3 {
     pub fn write_encrypted(addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
         match unsafe { esp_rom_spiflash_write_encrypted(addr, data, len) } {
             0 => Ok(()),
-            _ => Err(FailedSpiOp),
+            _ => Err(Error::FailedSpiOp),
         }
     }
 

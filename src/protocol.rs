@@ -1,16 +1,22 @@
 use core::{cmp::min, mem::size_of, slice};
 
 use md5::{Digest, Md5};
-use slip::*;
-use target::*;
+use slip::{read_packet, write_delimiter, write_packet, write_raw};
+use target::{
+    change_baudrate, delay_us, erase_flash, erase_region, flash_erase_block, flash_erase_sector,
+    get_security_info, read_register, soft_reset, spi_attach, spi_flash_read, spi_set_params,
+    spiflash_write, unlock_flash, write_encrypted, write_encrypted_disable, write_encrypted_enable,
+    write_register, FLASH_BLOCK_SIZE, FLASH_SECTOR_MASK,
+};
 
 #[cfg_attr(test, mockall_double::double)]
 use crate::targets::esp32c3 as target;
 use crate::{
-    commands,
-    commands::{Code, Code::*, Error, Error::*, Response, RESPONSE_SIZE},
+    commands::{self, Code, Error, Response, RESPONSE_SIZE},
     dprintln,
-    miniz_types::*,
+    miniz_types::{
+        tinfl_decompressor, TinflStatus, TINFL_FLAG_HAS_MORE_INPUT, TINFL_FLAG_PARSE_ZLIB_HEADER,
+    },
 };
 
 const DATA_CMD_SIZE: usize = size_of::<commands::Data>();
@@ -125,9 +131,9 @@ impl<'a> Stub<'a> {
         self.decompressor.state = 0;
 
         match cmd.base.code {
-            FlashBegin | FlashDeflBegin => {
+            Code::FlashBegin | Code::FlashDeflBegin => {
                 if cmd.packet_size > MAX_WRITE_BLOCK {
-                    return Err(BadBlocksize);
+                    return Err(Error::BadBlocksize);
                 }
                 // Todo: check for 16MB flash only
                 self.in_flash_mode = true;
@@ -140,7 +146,7 @@ impl<'a> Stub<'a> {
     }
 
     fn process_end(&mut self, cmd: &commands::End, response: &Response) -> Result<(), Error> {
-        if cmd.base.code == MemEnd {
+        if cmd.base.code == Code::MemEnd {
             let addr = self.erase_addr as *const u32;
             let length = self.end_addr - self.erase_addr;
             let slice = unsafe { slice::from_raw_parts(addr, length as usize) };
@@ -148,12 +154,12 @@ impl<'a> Stub<'a> {
             memory.copy_from_slice(&slice);
             return match self.remaining {
                 0 => Ok(()),
-                _ => Err(NotEnoughData),
+                _ => Err(Error::NotEnoughData),
             };
         } else if !self.in_flash_mode {
-            return Err(NotInFlashMode);
+            return Err(Error::NotInFlashMode);
         } else if self.remaining > 0 {
-            return Err(NotEnoughData);
+            return Err(Error::NotEnoughData);
         }
 
         self.in_flash_mode = false;
@@ -171,9 +177,9 @@ impl<'a> Stub<'a> {
         let data_len = data.len() as u32;
 
         if data_len > self.remaining {
-            return Err(TooMuchData);
+            return Err(Error::TooMuchData);
         } else if data_len % 4 != 0 {
-            return Err(BadDataLen);
+            return Err(Error::BadDataLen);
         }
 
         let (_, data_u32, _) = unsafe { data.align_to::<u32>() };
@@ -224,9 +230,8 @@ impl<'a> Stub<'a> {
     }
 
     fn flash_defl_data(&mut self, data: &[u8]) {
-        use crate::miniz_types::TinflStatus::*;
-
         const OUT_BUFFER_SIZE: usize = 0x8000; // 32768;
+
         static mut DECOMPRESS_BUF: [u8; OUT_BUFFER_SIZE] = [0; OUT_BUFFER_SIZE];
         static mut DECOMPRESS_INDEX: usize = 0;
 
@@ -234,10 +239,10 @@ impl<'a> Stub<'a> {
         let out_buf = unsafe { &mut DECOMPRESS_BUF };
         let mut in_index = 0;
         let mut length = data.len();
-        let mut status = NeedsMoreInput;
+        let mut status = TinflStatus::NeedsMoreInput;
         let mut flags = TINFL_FLAG_PARSE_ZLIB_HEADER;
 
-        while length > 0 && self.remaining > 0 && status != Done {
+        while length > 0 && self.remaining > 0 && status != TinflStatus::Done {
             let mut in_bytes = length;
             let mut out_bytes = out_buf.len() - out_index;
             let next_out: *mut u8 = out_buf[out_index..].as_mut_ptr();
@@ -261,7 +266,7 @@ impl<'a> Stub<'a> {
             in_index += in_bytes;
             out_index += out_bytes;
 
-            if status == Done || out_index == OUT_BUFFER_SIZE {
+            if status == TinflStatus::Done || out_index == OUT_BUFFER_SIZE {
                 self.flash_data(&out_buf[..out_index]);
                 out_index = 0;
             }
@@ -270,12 +275,12 @@ impl<'a> Stub<'a> {
         unsafe { DECOMPRESS_INDEX = out_index };
 
         // error won't get sent back until next block is sent
-        if status < Done {
-            self.last_error = Some(InflateError);
-        } else if status == Done && self.remaining > 0 {
-            self.last_error = Some(NotEnoughData);
-        } else if status != Done && self.remaining == 0 {
-            self.last_error = Some(TooMuchData);
+        if status < TinflStatus::Done {
+            self.last_error = Some(Error::InflateError);
+        } else if status == TinflStatus::Done && self.remaining > 0 {
+            self.last_error = Some(Error::NotEnoughData);
+        } else if status != TinflStatus::Done && self.remaining == 0 {
+            self.last_error = Some(Error::TooMuchData);
         }
     }
 
@@ -294,20 +299,20 @@ impl<'a> Stub<'a> {
         let checksum: u8 = data.iter().fold(0xEF, |acc, x| acc ^ x);
 
         if !self.in_flash_mode {
-            return Err(NotInFlashMode);
+            return Err(Error::NotInFlashMode);
         } else if cmd.size != data.len() as u32 {
-            return Err(BadDataLen);
+            return Err(Error::BadDataLen);
         } else if cmd.base.checksum != checksum as u32 {
-            return Err(BadDataChecksum);
+            return Err(Error::BadDataChecksum);
         }
 
         self.send_response(&response);
 
         match cmd.base.code {
-            FlashEncryptedData => self.flash_encrypt_data(data),
-            FlashDeflData => self.flash_defl_data(data),
-            FlashData => self.flash_data(data),
-            MemData => self.write_ram(data)?,
+            Code::FlashEncryptedData => self.flash_encrypt_data(data),
+            Code::FlashDeflData => self.flash_defl_data(data),
+            Code::FlashData => self.flash_data(data),
+            Code::MemData => self.write_ram(data)?,
             _ => (),
         }
 
@@ -356,48 +361,48 @@ impl<'a> Stub<'a> {
         dprintln!("process command: {:?}", code);
 
         match code {
-            Sync => {
+            Code::Sync => {
                 for _ in 1..=7 {
                     self.send_response(&response);
                 }
             }
-            ReadReg => {
+            Code::ReadReg => {
                 let address = u32_from_slice(payload, CMD_BASE_SIZE);
                 response.value(read_register(address));
             }
-            WriteReg => {
+            Code::WriteReg => {
                 let reg: commands::WriteReg = slice_to_struct(payload)?;
                 write_register(reg.address, reg.value);
             }
-            FlashBegin | MemBegin | FlashDeflBegin => {
+            Code::FlashBegin | Code::MemBegin | Code::FlashDeflBegin => {
                 let cmd: commands::Begin = slice_to_struct(payload)?;
                 self.process_begin(&cmd)?
             }
-            FlashData | FlashDeflData | FlashEncryptedData | MemData => {
+            Code::FlashData | Code::FlashDeflData | Code::FlashEncryptedData | Code::MemData => {
                 let cmd: commands::Data = slice_to_struct(&payload)?;
                 let data = &payload[DATA_CMD_SIZE..];
                 self.process_data(&cmd, data, &response)?;
                 response_sent = true;
             }
-            FlashEnd | MemEnd | FlashDeflEnd => {
+            Code::FlashEnd | Code::MemEnd | Code::FlashDeflEnd => {
                 let cmd: commands::End = slice_to_struct(payload)?;
                 self.process_end(&cmd, &response)?;
             }
-            SpiFlashMd5 => {
+            Code::SpiFlashMd5 => {
                 let cmd: commands::SpiFlashMd5 = slice_to_struct(payload)?;
                 let md5 = calculate_md5(cmd.address, cmd.size)?;
                 self.send_md5_response(&response, &md5);
                 response_sent = true;
             }
-            SpiSetParams => {
+            Code::SpiSetParams => {
                 let cmd: commands::SpiSetParams = slice_to_struct(payload)?;
                 spi_set_params(&cmd.params)?
             }
-            SpiAttach => {
+            Code::SpiAttach => {
                 let param = u32_from_slice(payload, CMD_BASE_SIZE);
                 spi_attach(param);
             }
-            ChangeBaudrate => {
+            Code::ChangeBaudrate => {
                 let baud: commands::ChangeBaudrate = slice_to_struct(payload)?;
                 self.send_response(&response);
                 delay_us(10000); // Wait for response to be transfered
@@ -405,27 +410,27 @@ impl<'a> Stub<'a> {
                 self.send_greeting();
                 response_sent = true;
             }
-            EraseFlash => erase_flash()?,
-            EraseRegion => {
+            Code::EraseFlash => erase_flash()?,
+            Code::EraseRegion => {
                 let reg: commands::EraseRegion = slice_to_struct(payload)?;
                 erase_region(reg.address, reg.size)?;
             }
-            ReadFlash => {
+            Code::ReadFlash => {
                 self.send_response(&response);
                 let cmd: commands::ReadFlash = slice_to_struct(payload)?;
                 self.process_read_flash(&cmd.params)?;
                 response_sent = true;
             }
-            GetSecurityInfo => {
+            Code::GetSecurityInfo => {
                 let info = get_security_info()?;
                 self.send_security_info_response(&response, &info);
                 response_sent = true;
             }
-            RunUserCode => {
+            Code::RunUserCode => {
                 soft_reset(); // ESP8266 Only
             }
             _ => {
-                return Err(InvalidCommand);
+                return Err(Error::InvalidCommand);
             }
         };
 
