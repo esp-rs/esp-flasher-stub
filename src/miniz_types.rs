@@ -17,21 +17,19 @@ pub enum TinflStatus {
     Failed = -1,
     Done = 0,
     NeedsMoreInput = 1,
-    HasMoreOutput = 2
+    HasMoreOutput = 2,
 }
 
 #[derive(Clone, Copy)]
 #[repr(C, packed(1))]
-struct tinfl_huff_table
-{
+struct tinfl_huff_table {
     code_size: [u8; TINFL_MAX_HUFF_SYMBOLS_0],
-    look_up: [u16;TINFL_FAST_LOOKUP_SIZE],
-    tree: [u16; TINFL_MAX_HUFF_SYMBOLS_0 * 2]
+    look_up: [u16; TINFL_FAST_LOOKUP_SIZE],
+    tree: [u16; TINFL_MAX_HUFF_SYMBOLS_0 * 2],
 }
 
 #[repr(C, packed(1))]
-pub struct tinfl_decompressor
-{
+pub struct tinfl_decompressor {
     pub state: u32,
     num_bits: u32,
     zhdr0: u32,
@@ -48,15 +46,15 @@ pub struct tinfl_decompressor
     dist_from_out_buf_start: u32,
     tables: [tinfl_huff_table; TINFL_MAX_HUFF_TABLES],
     raw_header: [u8; 4],
-    len_codes: [u8; TINFL_MAX_HUFF_SYMBOLS_0 + TINFL_MAX_HUFF_SYMBOLS_1 + 137]
+    len_codes: [u8; TINFL_MAX_HUFF_SYMBOLS_0 + TINFL_MAX_HUFF_SYMBOLS_1 + 137],
 }
 
 impl Default for tinfl_huff_table {
     fn default() -> Self {
         tinfl_huff_table {
             code_size: [0; TINFL_MAX_HUFF_SYMBOLS_0],
-            look_up: [0;TINFL_FAST_LOOKUP_SIZE],
-            tree: [0; TINFL_MAX_HUFF_SYMBOLS_0 * 2]
+            look_up: [0; TINFL_FAST_LOOKUP_SIZE],
+            tree: [0; TINFL_MAX_HUFF_SYMBOLS_0 * 2],
         }
     }
 }
@@ -80,7 +78,7 @@ impl Default for tinfl_decompressor {
             dist_from_out_buf_start: 0,
             tables: [Default::default(); TINFL_MAX_HUFF_TABLES],
             raw_header: [0; 4],
-            len_codes: [0; TINFL_MAX_HUFF_SYMBOLS_0 + TINFL_MAX_HUFF_SYMBOLS_1 + 137]
+            len_codes: [0; TINFL_MAX_HUFF_SYMBOLS_0 + TINFL_MAX_HUFF_SYMBOLS_1 + 137],
         }
     }
 }
@@ -88,12 +86,12 @@ impl Default for tinfl_decompressor {
 #[allow(unused)]
 extern "C" {
     pub fn tinfl_decompress(
-        r: *mut tinfl_decompressor, 
-        in_buf: *const u8, 
-        in_buf_size: *mut usize, 
-        out_buf_start: *mut u8, 
-        out_buf_next: *mut u8, 
-        out_buf_size: *mut usize, 
-        flags: u32
+        r: *mut tinfl_decompressor,
+        in_buf: *const u8,
+        in_buf_size: *mut usize,
+        out_buf_start: *mut u8,
+        out_buf_next: *mut u8,
+        out_buf_size: *mut usize,
+        flags: u32,
     ) -> TinflStatus;
 }
