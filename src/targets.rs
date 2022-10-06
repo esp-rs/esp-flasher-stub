@@ -38,7 +38,7 @@ pub mod esp32c3 {
     use crate::commands::{Error, SpiParams};
 
     const SPI_BASE_REG: u32 = 0x60002000;
-    const SPI_CMD_REG: u32 = SPI_BASE_REG + 0x00;
+    const SPI_CMD_REG: u32 = SPI_BASE_REG;
     const SPI_ADDR_REG: u32 = SPI_BASE_REG + 0x04;
     const SPI_RD_STATUS_REG: u32 = SPI_BASE_REG + 0x2C;
     const SPI_EXT2_REG: u32 = SPI_BASE_REG + 0x54;

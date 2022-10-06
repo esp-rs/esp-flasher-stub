@@ -9,7 +9,7 @@ pub const TINFL_FLAG_HAS_MORE_INPUT: u32 = 2;
 
 #[allow(unused)]
 #[repr(C)]
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, Eq, PartialOrd)]
 pub enum TinflStatus {
     FailedCannotMakeProgress = -4,
     BadParam = -3,

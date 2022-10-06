@@ -4,8 +4,7 @@ use esp32c3_hal::{
     pac::{self, UART0},
     prelude::*,
     serial::Instance,
-    Cpu,
-    Serial,
+    Cpu, Serial,
 };
 use heapless::spsc::Queue;
 
@@ -14,7 +13,7 @@ use crate::{protocol::InputIO, targets::esp32c3 as target};
 const RX_QUEUE_SIZE: usize = target::MAX_WRITE_BLOCK + 0x400;
 static mut RX_QUEUE: Queue<u8, RX_QUEUE_SIZE> = Queue::new();
 
-impl<'a, T: Instance> InputIO for Serial<T> {
+impl<T: Instance> InputIO for Serial<T> {
     fn recv(&mut self) -> u8 {
         loop {
             if let Some(byte) = unsafe { RX_QUEUE.dequeue() } {

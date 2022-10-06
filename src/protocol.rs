@@ -117,7 +117,7 @@ impl<'a> Stub<'a> {
     }
 
     pub fn send_greeting(&mut self) {
-        let greeting = ['O' as u8, 'H' as u8, 'A' as u8, 'I' as u8];
+        let greeting = [b'O', b'H', b'A', b'I'];
         write_packet(self.io, &greeting);
     }
 
@@ -151,7 +151,7 @@ impl<'a> Stub<'a> {
             let length = self.end_addr - self.erase_addr;
             let slice = unsafe { slice::from_raw_parts(addr, length as usize) };
             let mut memory: [u32; 32] = [0; 32];
-            memory.copy_from_slice(&slice);
+            memory.copy_from_slice(slice);
             return match self.remaining {
                 0 => Ok(()),
                 _ => Err(Error::NotEnoughData),
@@ -165,7 +165,7 @@ impl<'a> Stub<'a> {
         self.in_flash_mode = false;
 
         if cmd.run_user_code == 1 {
-            self.send_response(&response);
+            self.send_response(response);
             delay_us(10000);
             soft_reset();
         }
@@ -276,7 +276,7 @@ impl<'a> Stub<'a> {
 
         // error won't get sent back until next block is sent
         if status < TinflStatus::Done {
-            self.last_error = Some(Error::InflateError);
+            self.last_error = Some(Error::Inflate);
         } else if status == TinflStatus::Done && self.remaining > 0 {
             self.last_error = Some(Error::NotEnoughData);
         } else if status != TinflStatus::Done && self.remaining == 0 {
@@ -306,7 +306,7 @@ impl<'a> Stub<'a> {
             return Err(Error::BadDataChecksum);
         }
 
-        self.send_response(&response);
+        self.send_response(response);
 
         match cmd.base.code {
             Code::FlashEncryptedData => self.flash_encrypt_data(data),
@@ -363,7 +363,7 @@ impl<'a> Stub<'a> {
         match code {
             Code::Sync => {
                 for _ in 1..=7 {
-                    self.send_response(&response);
+                    self.send_response(response);
                 }
             }
             Code::ReadReg => {
@@ -379,19 +379,19 @@ impl<'a> Stub<'a> {
                 self.process_begin(&cmd)?
             }
             Code::FlashData | Code::FlashDeflData | Code::FlashEncryptedData | Code::MemData => {
-                let cmd: commands::Data = slice_to_struct(&payload)?;
+                let cmd: commands::Data = slice_to_struct(payload)?;
                 let data = &payload[DATA_CMD_SIZE..];
-                self.process_data(&cmd, data, &response)?;
+                self.process_data(&cmd, data, response)?;
                 response_sent = true;
             }
             Code::FlashEnd | Code::MemEnd | Code::FlashDeflEnd => {
                 let cmd: commands::End = slice_to_struct(payload)?;
-                self.process_end(&cmd, &response)?;
+                self.process_end(&cmd, response)?;
             }
             Code::SpiFlashMd5 => {
                 let cmd: commands::SpiFlashMd5 = slice_to_struct(payload)?;
                 let md5 = calculate_md5(cmd.address, cmd.size)?;
-                self.send_md5_response(&response, &md5);
+                self.send_md5_response(response, &md5);
                 response_sent = true;
             }
             Code::SpiSetParams => {
@@ -404,7 +404,7 @@ impl<'a> Stub<'a> {
             }
             Code::ChangeBaudrate => {
                 let baud: commands::ChangeBaudrate = slice_to_struct(payload)?;
-                self.send_response(&response);
+                self.send_response(response);
                 delay_us(10000); // Wait for response to be transfered
                 change_baudrate(baud.old, baud.new);
                 self.send_greeting();
@@ -416,14 +416,14 @@ impl<'a> Stub<'a> {
                 erase_region(reg.address, reg.size)?;
             }
             Code::ReadFlash => {
-                self.send_response(&response);
+                self.send_response(response);
                 let cmd: commands::ReadFlash = slice_to_struct(payload)?;
                 self.process_read_flash(&cmd.params)?;
                 response_sent = true;
             }
             Code::GetSecurityInfo => {
                 let info = get_security_info()?;
-                self.send_security_info_response(&response, &info);
+                self.send_security_info_response(response, &info);
                 response_sent = true;
             }
             Code::RunUserCode => {
@@ -438,7 +438,7 @@ impl<'a> Stub<'a> {
     }
 
     pub fn process_command(&mut self, payload: &[u8]) {
-        let command: commands::Base = slice_to_struct(&payload).unwrap();
+        let command: commands::Base = slice_to_struct(payload).unwrap();
         let mut response = Response::new(command.code);
 
         match self.execute_command(payload, command.code, &mut response) {

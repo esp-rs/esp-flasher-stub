@@ -1,8 +1,8 @@
 #[allow(unused)]
 #[repr(u8)]
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Error {
-    NoError = 0,
+    None = 0,
     BadDataLen = 0xC0,
     BadDataChecksum = 0xC1,
     BadBlocksize = 0xC2,
@@ -10,7 +10,7 @@ pub enum Error {
     FailedSpiOp = 0xC4,
     FailedSpiUnlock = 0xC5,
     NotInFlashMode = 0xC6,
-    InflateError = 0xC7,
+    Inflate = 0xC7,
     NotEnoughData = 0xC8,
     TooMuchData = 0xC9,
     CmdNotImplemented = 0xFF,
@@ -23,7 +23,7 @@ pub enum Error {
 }
 
 #[allow(unused)]
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Code {
     FlashBegin = 0x02,
     FlashData = 0x03,
@@ -109,7 +109,7 @@ pub struct ReadReg {
 }
 
 // Possibly move to other module
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(C, packed(1))]
 pub struct SpiParams {
     pub id: u32,
@@ -153,7 +153,7 @@ pub struct EraseRegion {
 }
 
 // Possibly move to other module
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 #[repr(C, packed(1))]
 pub struct ReadFlashParams {
     pub address: u32,
@@ -207,7 +207,7 @@ impl<'a> Response<'a> {
             size: 2,
             value: 0,
             status: Status::Success,
-            error: Error::NoError,
+            error: Error::None,
             data: &[],
         }
     }
