@@ -1,9 +1,11 @@
-[build]
-target = "riscv32imc-unknown-none-elf"
-
-[target.'cfg(any(target_arch="riscv32"))']
+[target.'cfg(target_arch="riscv32")']
 rustflags = [
   "-C", "link-args=-Map=target/stub.map",
+]
+
+[target.'cfg(target_arch="xtensa")']
+rustflags = [
+  "-C", "link-args-Wl,=-Map=target/stub.map",
 ]
 
 [unstable]
