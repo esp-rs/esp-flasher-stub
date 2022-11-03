@@ -4,20 +4,18 @@
 //! This is unsafe! It is asynchronous with normal UART1 usage and
 //! interrupts are not disabled.
 
-use esp32c3_hal::{pac::UART1, prelude::nb};
+use crate::hal::{pac::UART1, prelude::nb};
+
+pub static mut DEBUG_LOG: DebugLog = DebugLog;
 
 pub enum Error {}
 
-pub struct DebugLog {}
+pub struct DebugLog;
 
 impl DebugLog {
     pub fn count(&mut self) -> u16 {
-        unsafe { (*UART1::ptr()).status.read().txfifo_cnt().bits() }
+        unsafe { (*UART1::ptr()).status.read().txfifo_cnt().bits().into() }
     }
-
-    // pub fn is_idle(&mut self) -> bool {
-    //     unsafe { (*UART1::ptr()).status.read().st_utx_out().is_tx_idle() }
-    // }
 
     fn write(&mut self, word: u8) -> nb::Result<(), Error> {
         if self.count() < 128 {
@@ -41,8 +39,6 @@ impl core::fmt::Write for DebugLog {
             .map_err(|_| core::fmt::Error)
     }
 }
-
-pub static mut DEBUG_LOG: DebugLog = DebugLog {};
 
 /// Macro for sending a formatted string to UART1 for debugging
 #[macro_export]
