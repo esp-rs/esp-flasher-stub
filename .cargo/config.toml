@@ -1,12 +1,8 @@
 [target.'cfg(target_arch="riscv32")']
-rustflags = [
-  "-C", "link-args=-Map=target/stub.map",
-]
+rustflags = [ "-C", "link-args=-Map=target/stub.map" ]
 
 [target.'cfg(target_arch="xtensa")']
-rustflags = [
-  "-C", "link-args-Wl,=-Map=target/stub.map",
-]
+rustflags = [ "-Clink-args=-Wl,-Map=target/stub.map" ]
 
 [unstable]
 build-std = ["core"]

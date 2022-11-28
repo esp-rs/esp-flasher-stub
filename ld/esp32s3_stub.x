@@ -2,35 +2,40 @@
 /* before memory.x to allow override */
 ENTRY(Reset)
 
-/* This memory map assumes the flash cache is on; 
-   the blocks used are excluded from the various memory ranges 
-   
-   see: https://github.com/espressif/esp-idf/blob/5b1189570025ba027f2ff6c2d91f6ffff3809cc2/components/heap/port/esp32/memory_layout.c
-   for details
-   */
-
 /* override entry point */
 ENTRY(ESP32Reset)
 
-/* reserved at the start of DRAM for e.g. the BT stack */
-RESERVE_DRAM = 0x0;
+/* reserved for ICACHE */
+RESERVE_ICACHE = 0x8000;
 
 /* reserved at the start of the RTC memories for use by the ULP processor */
 RESERVE_RTC_FAST = 0;
 RESERVE_RTC_SLOW = 0;
 
 /* define stack size for both cores */
-STACK_SIZE = 32k;
+STACK_SIZE = 8k;
 
-/* Specify main memory areas */
+VECTORS_SIZE = 0x400;
+
+/* Specify main memory areas
+
+ 40370000 <- IRAM/Icache -> 40378000 <- D/IRAM (I) -> 403E0000
+                            3FC88000 <- D/IRAM (D) -> 3FCF0000 <- DRAM/DCache -> 3FD00000
+
+ Startup code uses the IRAM from 0x403B9000 to 0x403E0000, which is not available for static
+ memory, but can only be used after app starts.
+
+ D cache use the memory from high address, so when it's configured to 16K/32K, the region
+ 0x3FCF0000 ~ (3FD00000 - DATA_CACHE_SIZE) should be available. This region is not used as
+ static memory, leaving to the heap.
+*/
 MEMORY
 {
-  reserved_cache_seg     : ORIGIN = 0x40070000, len = 64k /* SRAM0; reserved for usage as flash cache*/
-  iram_seg ( RX )        : ORIGIN = 0x40080000, len = 128k /* SRAM0 */
+  vectors_seg ( RX )     : ORIGIN = 0x40370000 + RESERVE_ICACHE, len = VECTORS_SIZE
+  iram_seg ( RX )        : ORIGIN = 0x40370000 + RESERVE_ICACHE + VECTORS_SIZE, len = 328k - VECTORS_SIZE - RESERVE_ICACHE
+  dram_seg ( RW )        : ORIGIN = 0x3FCA0000 , len = 345856
 
-  reserved_for_rom_seg   : ORIGIN = 0x3FFAE000, len = 8k /* SRAM2; reserved for usage by the ROM */
-  dram_seg ( RW )        : ORIGIN = 0x3FFB0000 + RESERVE_DRAM, len = 176k - RESERVE_DRAM /* SRAM2+1; first 64kB used by BT if enable */
-  reserved_for_boot_seg  : ORIGIN = 0x3FFDC200, len = 144k /* SRAM1; reserved for static ROM usage; can be used for heap */
+  reserved_for_boot_seg  : ORIGIN = 0x3FCDC700, len = 0xB000 /* reserved for static ROM usage; can be used for heap */
 
   /* external flash 
      The 0x20 offset is a convenience for the app binary image generation.
@@ -39,17 +44,21 @@ MEMORY
      header. Setting this offset makes it simple to meet the flash cache MMU's
      constraint that (paddr % 64KB == vaddr % 64KB).)
   */
-  irom_seg ( RX )        : ORIGIN = 0x400D0020, len = 3M - 0x20
-  drom_seg ( R )         : ORIGIN = 0x3F400020, len = 4M - 0x20
+  irom_seg ( RX )        : ORIGIN = 0x42000020, len = 4M - 0x20
+  drom_seg ( R )         : ORIGIN = 0x3C000020, len = 4M - 0x20
+
 
   /* RTC fast memory (executable). Persists over deep sleep. Only for core 0 (PRO_CPU) */
-  rtc_fast_iram_seg(RWX) : ORIGIN = 0x400C0000, len = 8k
+  rtc_fast_iram_seg(RWX) : ORIGIN = 0x600fe000, len = 8k
 
   /* RTC fast memory (same block as above), viewed from data bus. Only for core 0 (PRO_CPU) */
-  rtc_fast_dram_seg(RW)  : ORIGIN = 0x3FF80000 + RESERVE_RTC_FAST, len = 8k - RESERVE_RTC_FAST
+  rtc_fast_dram_seg(RW)  : ORIGIN = 0x600fe000 + RESERVE_RTC_FAST, len = 8k - RESERVE_RTC_FAST
 
   /* RTC slow memory (data accessible). Persists over deep sleep. */
   rtc_slow_seg(RW)       : ORIGIN = 0x50000000 + RESERVE_RTC_SLOW, len = 8k - RESERVE_RTC_SLOW
+
+  /* external memory, including data and text */
+  psram_seg(RWX)         : ORIGIN =  0x3F500000, len = 0xA80000 /* ??? */
 }
 
 /* map generic regions to output sections */
@@ -57,6 +66,8 @@ REGION_ALIAS("ROTEXT", irom_seg);
 REGION_ALIAS("RWTEXT", iram_seg);
 REGION_ALIAS("RODATA", drom_seg);
 REGION_ALIAS("RWDATA", dram_seg);
+
+PROVIDE( rom_config_instruction_cache_mode = 0x40001a1c );
 
 /* esp32 specific regions */
 SECTIONS {
@@ -129,43 +140,43 @@ SECTIONS {
 
   .text : ALIGN(4)
   {
-    /* Vector table */
     . = 0x0;
     _init_start = ABSOLUTE(.);
-    . = 0x00000000 ;
+    . = 0;
     KEEP(*(.WindowOverflow4.text));
-    . = 0x00000040;
+    . = 64;
     KEEP(*(.WindowUnderflow4.text));
-    . = 0x00000080;
+    . = 128;
     KEEP(*(.WindowOverflow8.text));
-    . = 0x000000C0;
+    . = 192;
     KEEP(*(.WindowUnderflow8.text));
-    . = 0x00000100;
+    . = 256;
     KEEP(*(.WindowOverflow12.text));
-    . = 0x00000140;
+    . = 320;
     KEEP(*(.WindowUnderflow12.text));
-    . = 0x00000180;
+    . = 384;
     KEEP(*(.Level2InterruptVector.text));
-    . = 0x000001C0;
+    . = 448;
     KEEP(*(.Level3InterruptVector.text));
-    . = 0x00000200;
+    . = 512;
     KEEP(*(.Level4InterruptVector.text));
-    . = 0x00000240;
+    . = 576;
     KEEP(*(.Level5InterruptVector.text));
-    . = 0x00000280;
+    . = 640;
     KEEP(*(.DebugExceptionVector.text));
-    . = 0x000002C0;
+    . = 704;
     KEEP(*(.NMIExceptionVector.text));
-    . = 0x00000300;
+    . = 768;
     KEEP(*(.KernelExceptionVector.text));
-    . = 0x00000340;
+    . = 832;
     KEEP(*(.UserExceptionVector.text));
-    . = 0x000003C0;
+    . = 960;
     KEEP(*(.DoubleExceptionVector.text));
     . = 0x400;
+
     _init_end = ABSOLUTE(.);
 
-    _stext = .;
+   _stext = .;
     . = ALIGN (4);
     _text_start = ABSOLUTE(.);
     . = ALIGN (4);
@@ -216,6 +227,9 @@ SECTIONS {
   } > RWDATA
 } 
 
+_external_ram_start = ABSOLUTE(ORIGIN(psram_seg));
+_external_ram_end = ABSOLUTE(ORIGIN(psram_seg)+LENGTH(psram_seg));
+
 _heap_end = ABSOLUTE(ORIGIN(dram_seg))+LENGTH(dram_seg)+LENGTH(reserved_for_boot_seg) - 2*STACK_SIZE;
 _text_heap_end = ABSOLUTE(ORIGIN(iram_seg)+LENGTH(iram_seg));
 _external_heap_end = ABSOLUTE(ORIGIN(psram_seg)+LENGTH(psram_seg));
@@ -227,8 +241,6 @@ _stack_end_cpu0 = _stack_start_cpu0 + STACK_SIZE;
 
 EXTERN(DefaultHandler);
 
-EXTERN(WIFI_EVENT); /* Force inclusion of WiFi libraries */
-
 PROVIDE(WIFI_MAC = DefaultHandler);
 PROVIDE(WIFI_NMI = DefaultHandler);
 PROVIDE(WIFI_BB = DefaultHandler);
@@ -239,19 +251,10 @@ PROVIDE(RWBT = DefaultHandler);
 PROVIDE(RWBLE = DefaultHandler);
 PROVIDE(RWBT_NMI = DefaultHandler);
 PROVIDE(RWBLE_NMI = DefaultHandler);
+PROVIDE(I2C_MST = DefaultHandler);
 PROVIDE(UHCI0 = DefaultHandler);
-PROVIDE(UHCI1 = DefaultHandler);
-PROVIDE(TG0_T0_LEVEL = DefaultHandler);
-PROVIDE(TG0_T1_LEVEL = DefaultHandler);
-PROVIDE(TG0_WDT_LEVEL = DefaultHandler);
-PROVIDE(TG0_LACT_LEVEL = DefaultHandler);
-PROVIDE(TG1_T0_LEVEL = DefaultHandler);
-PROVIDE(TG1_T1_LEVEL = DefaultHandler);
-PROVIDE(TG1_WDT_LEVEL = DefaultHandler);
-PROVIDE(TG1_LACT_LEVEL = DefaultHandler);
 PROVIDE(GPIO = DefaultHandler);
 PROVIDE(GPIO_NMI = DefaultHandler);
-PROVIDE(SPI0 = DefaultHandler);
 PROVIDE(SPI1 = DefaultHandler);
 PROVIDE(SPI2 = DefaultHandler);
 PROVIDE(SPI3 = DefaultHandler);
@@ -264,26 +267,51 @@ PROVIDE(PWM0 = DefaultHandler);
 PROVIDE(PWM1 = DefaultHandler);
 PROVIDE(LEDC = DefaultHandler);
 PROVIDE(EFUSE = DefaultHandler);
-PROVIDE(TWAI = DefaultHandler);
 PROVIDE(RTC_CORE = DefaultHandler);
 PROVIDE(RMT = DefaultHandler);
 PROVIDE(PCNT = DefaultHandler);
 PROVIDE(I2C_EXT0 = DefaultHandler);
 PROVIDE(I2C_EXT1 = DefaultHandler);
+PROVIDE(TWAI = DefaultHandler);
+PROVIDE(TG0_T0_LEVEL = DefaultHandler);
+PROVIDE(TG0_T1_LEVEL = DefaultHandler);
+PROVIDE(TG0_WDT_LEVEL = DefaultHandler);
+PROVIDE(TG1_T0_LEVEL = DefaultHandler);
+PROVIDE(TG1_T1_LEVEL = DefaultHandler);
+PROVIDE(TG1_WDT_LEVEL = DefaultHandler);
+PROVIDE(SYSTIMER_TARGET0 = DefaultHandler);
+PROVIDE(SYSTIMER_TARGET1 = DefaultHandler);
+PROVIDE(SYSTIMER_TARGET2 = DefaultHandler);
+PROVIDE(SPI_MEM_REJECT = DefaultHandler);
+PROVIDE(APB_ADC = DefaultHandler);
+PROVIDE(DMA_IN_CH0 = DefaultHandler);
+PROVIDE(DMA_IN_CH1 = DefaultHandler);
+PROVIDE(DMA_IN_CH2 = DefaultHandler);
+PROVIDE(DMA_IN_CH3 = DefaultHandler);
+PROVIDE(DMA_IN_CH4 = DefaultHandler);
+PROVIDE(DMA_OUT_CH0 = DefaultHandler);
+PROVIDE(DMA_OUT_CH1 = DefaultHandler);
+PROVIDE(DMA_OUT_CH2 = DefaultHandler);
+PROVIDE(DMA_OUT_CH3 = DefaultHandler);
+PROVIDE(DMA_OUT_CH4 = DefaultHandler);
 PROVIDE(RSA = DefaultHandler);
-PROVIDE(SPI1_DMA = DefaultHandler);
-PROVIDE(SPI2_DMA = DefaultHandler);
-PROVIDE(SPI3_DMA = DefaultHandler);
-PROVIDE(TIMER1 = DefaultHandler);
-PROVIDE(TIMER2 = DefaultHandler);
-PROVIDE(TG0_T0_EDGE = DefaultHandler);
-PROVIDE(TG0_T1_EDGE = DefaultHandler);
-PROVIDE(TG0_WDT_EDGE = DefaultHandler);
-PROVIDE(TG0_LACT_EDGE = DefaultHandler);
-PROVIDE(TG1_T0_EDGE = DefaultHandler);
-PROVIDE(TG1_T1_EDGE = DefaultHandler);
-PROVIDE(TG1_WDT_EDGE = DefaultHandler);
-PROVIDE(TG1_LACT_EDGE = DefaultHandler);
+PROVIDE(AES = DefaultHandler);
+PROVIDE(SHA = DefaultHandler);
+PROVIDE(ASSIST_DEBUG = DefaultHandler);
+PROVIDE(APB_PMS_MONITOR_VIOLATE = DefaultHandler);
+PROVIDE(CORE_0_IRAM0_PMS_MONITOR_VIOLATE = DefaultHandler);
+PROVIDE(CORE_0_DRAM0_PMS_MONITOR_VIOLATE = DefaultHandler);
+PROVIDE(CORE_0_PIF_PMS_MONITOR_VIOLATE = DefaultHandler);
+PROVIDE(CORE_0_PIF_PMS_MONITOR_VIOLATE_SIZE = DefaultHandler);
+PROVIDE(CORE_1_IRAM0_PMS_MONITOR_VIOLATE = DefaultHandler);
+PROVIDE(CORE_1_DRAM0_PMS_MONITOR_VIOLATE = DefaultHandler);
+PROVIDE(CORE_1_PIF_PMS_MONITOR_VIOLATE = DefaultHandler);
+PROVIDE(CORE_1_PIF_PMS_MONITOR_VIOLATE_SIZE = DefaultHandler);
+PROVIDE(CACHE_CORE0_ACS = DefaultHandler);
+PROVIDE(CACHE_CORE1_ACS = DefaultHandler);
+PROVIDE(USB_DEVICE = DefaultHandler);
+PROVIDE(PERI_BACKUP = DefaultHandler);
+PROVIDE(DMA_EXTMEM_REJECT = DefaultHandler);
 
 
 /* after memory.x to allow override */

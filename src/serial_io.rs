@@ -1,25 +1,31 @@
-use esp32c3_hal::{
-    interrupt,
-    interrupt::CpuInterrupt,
-    pac::{self, UART0},
-    prelude::*,
-    serial::Instance,
-    Cpu, Serial,
+use heapless::Deque;
+#[cfg(any(target_arch = "riscv32"))]
+use riscv::interrupt::free as interrupt_free;
+#[cfg(any(target_arch = "xtensa"))]
+use xtensa_lx::interrupt::free as interrupt_free;
+
+use crate::{
+    hal::{
+        interrupt,
+        interrupt::CpuInterrupt::*,
+        pac,
+        pac::UART0,
+        prelude::*,
+        serial::Instance,
+        Cpu::*,
+        Serial,
+    },
+    protocol::InputIO,
 };
-use heapless::spsc::Queue;
 
-use crate::{protocol::InputIO, targets::esp32c3 as target};
+const RX_QUEUE_SIZE: usize = crate::targets::MAX_WRITE_BLOCK + 0x400;
 
-const RX_QUEUE_SIZE: usize = target::MAX_WRITE_BLOCK + 0x400;
-static mut RX_QUEUE: Queue<u8, RX_QUEUE_SIZE> = Queue::new();
+static mut RX_QUEUE: Deque<u8, RX_QUEUE_SIZE> = Deque::new();
 
-impl<T: Instance> InputIO for Serial<T> {
+impl<'a, T: Instance> InputIO for Serial<T> {
     fn recv(&mut self) -> u8 {
-        loop {
-            if let Some(byte) = unsafe { RX_QUEUE.dequeue() } {
-                return byte;
-            }
-        }
+        unsafe { while interrupt_free(|_| RX_QUEUE.is_empty()) {} }
+        unsafe { interrupt_free(|_| RX_QUEUE.pop_front().unwrap()) }
     }
 
     fn send(&mut self, bytes: &[u8]) {
@@ -27,15 +33,78 @@ impl<T: Instance> InputIO for Serial<T> {
     }
 }
 
-#[interrupt]
-fn UART0() {
+fn uart_isr() {
     let uart = unsafe { &*UART0::ptr() };
 
     while uart.status.read().rxfifo_cnt().bits() > 0 {
         let data = uart.fifo.read().rxfifo_rd_byte().bits();
-        unsafe { RX_QUEUE.enqueue(data).unwrap() };
+        unsafe { RX_QUEUE.push_back(data).unwrap() };
     }
 
     uart.int_clr.write(|w| w.rxfifo_full_int_clr().set_bit());
-    interrupt::clear(Cpu::ProCpu, CpuInterrupt::Interrupt3);
+}
+
+#[cfg(feature = "esp32")]
+pub fn enable_uart0_rx_interrupt() {
+    let uart = unsafe { &*UART0::ptr() };
+
+    uart.conf1
+        .modify(|_, w| unsafe { w.rxfifo_full_thrhd().bits(1) });
+    uart.int_ena.write(|w| w.rxfifo_full_int_ena().set_bit());
+
+    unsafe {
+        interrupt::map(ProCpu, pac::Interrupt::UART0, Interrupt17LevelPriority1);
+        xtensa_lx::interrupt::enable_mask(1 << 17);
+    }
+}
+
+#[cfg(feature = "esp32s3")]
+pub fn enable_uart0_rx_interrupt() {
+    let uart = unsafe { &*UART0::ptr() };
+
+    uart.conf1
+        .modify(|_, w| unsafe { w.rxfifo_full_thrhd().bits(1) });
+    uart.int_ena.write(|w| w.rxfifo_full_int_ena().set_bit());
+
+    unsafe {
+        interrupt::map(ProCpu, pac::Interrupt::UART0, Interrupt17LevelPriority1);
+        xtensa_lx::interrupt::enable_mask(1 << 17);
+    }
+}
+
+#[cfg(feature = "esp32c3")]
+pub fn enable_uart0_rx_interrupt() {
+    let uart = unsafe { &*UART0::ptr() };
+
+    uart.conf1
+        .modify(|_, w| unsafe { w.rxfifo_full_thrhd().bits(1) });
+    uart.int_ena.write(|w| w.rxfifo_full_int_ena().set_bit());
+
+    interrupt::enable(pac::Interrupt::UART0, interrupt::Priority::Priority1).unwrap();
+    interrupt::set_kind(ProCpu, Interrupt1, interrupt::InterruptKind::Level);
+
+    unsafe {
+        riscv::interrupt::enable();
+    }
+}
+
+#[interrupt]
+#[cfg(feature = "esp32")]
+fn UART0() {
+    uart_isr();
+    interrupt::clear(ProCpu, Interrupt17LevelPriority1);
+}
+
+#[interrupt]
+#[cfg(feature = "esp32s3")]
+fn UART0() {
+    uart_isr();
+    interrupt::clear(ProCpu, Interrupt17LevelPriority1);
+}
+
+#[interrupt]
+#[cfg(feature = "esp32c3")]
+fn UART0() {
+    uart_isr();
+    interrupt::clear(ProCpu, Interrupt1);
 }

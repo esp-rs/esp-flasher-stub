@@ -284,6 +284,7 @@ dependencies = [
  "esp-hal-procmacros",
  "esp32",
  "esp32c3",
+ "esp32s3",
  "fugit",
  "nb 1.0.0",
  "paste",
@@ -365,6 +366,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "esp32s3"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c39688fbefe925b6fc7bf5b2ceeadf32b6f6049323c14d58180a98656393b8e9"
+dependencies = [
+ "bare-metal 1.0.0",
+ "vcell",
+ "xtensa-lx",
+ "xtensa-lx-rt",
+]
+
+[[package]]
+name = "esp32s3-hal"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef739950b5071c5f57588592c5c355df439bc82bac0277b929c3b0b7f6cf8401"
+dependencies = [
+ "bare-metal 1.0.0",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0-alpha.8",
+ "esp-hal-common",
+ "xtensa-lx",
+ "xtensa-lx-rt",
+]
+
+[[package]]
 name = "flasher-stub"
 version = "0.1.0"
 dependencies = [
@@ -372,6 +399,7 @@ dependencies = [
  "esp-backtrace",
  "esp32-hal",
  "esp32c3-hal",
+ "esp32s3-hal",
  "heapless",
  "matches",
  "md-5",
