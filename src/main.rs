@@ -1,23 +1,22 @@
 #![no_main]
 #![no_std]
 
-use esp_backtrace as _;
 use flasher_stub::{
     hal::{
         clock::ClockControl,
-        pac,
+        interrupt, pac,
         prelude::*,
         serial::{
             config::{Config, DataBits, Parity, StopBits},
             TxRxPins,
         },
-        Serial,
-        IO,
+        Serial, IO,
     },
     protocol::Stub,
     targets,
-    serial_io,
 };
+
+use esp_backtrace as _;
 
 #[cfg(target_arch = "riscv32")]
 use riscv_rt::entry;
@@ -53,7 +52,9 @@ fn main() -> ! {
     let mut serial = Serial::new(peripherals.UART0);
 
     // Must be called after Serial::new, as it disables interrupts
-    serial_io::enable_uart0_rx_interrupt();
+    serial.listen_rx_fifo_full();
+
+    interrupt::enable(pac::Interrupt::UART0, interrupt::Priority::Priority1).unwrap();
 
     let mut stub = Stub::new(&mut serial);
     stub.send_greeting();

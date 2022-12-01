@@ -13,6 +13,9 @@ pub enum Error {}
 pub struct DebugLog;
 
 impl DebugLog {
+    // on RISCV clippy suggests to remove `.into()`, however, on Xtensa it's warning
+    // https://github.com/rust-lang/rust-clippy/issues/6466
+    #[allow(clippy::useless_conversion)]
     pub fn count(&mut self) -> u16 {
         unsafe { (*UART1::ptr()).status.read().txfifo_cnt().bits().into() }
     }

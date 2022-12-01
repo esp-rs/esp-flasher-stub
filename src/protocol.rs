@@ -46,6 +46,7 @@ fn slice_to_struct<T: Sized + Copy>(slice: &[u8]) -> Result<T, Error> {
     unsafe { Ok(*(slice.as_ptr() as *const T)) }
 }
 
+#[allow(clippy::missing_safety_doc)]
 pub unsafe fn to_slice_u8<T: Sized>(p: &T) -> &[u8] {
     slice::from_raw_parts((p as *const T) as *const u8, size_of::<T>())
 }
@@ -99,7 +100,7 @@ impl<'a> Stub<'a> {
     }
 
     pub fn send_greeting(&mut self) {
-        let greeting = ['O' as u8, 'H' as u8, 'A' as u8, 'I' as u8];
+        let greeting = [b'O', b'H', b'A', b'I'];
         write_packet(self.io, &greeting);
     }
 
@@ -151,7 +152,7 @@ impl<'a> Stub<'a> {
         if !self.in_flash_mode {
             return Err(NotInFlashMode);
         }
-        
+
         if self.remaining > 0 {
             return Err(NotEnoughData);
         }
@@ -159,7 +160,7 @@ impl<'a> Stub<'a> {
         self.in_flash_mode = false;
 
         if cmd.run_user_code == 1 {
-            self.send_response(&response);
+            self.send_response(response);
             self.target.delay_us(10_000);
             self.target.soft_reset();
         }
@@ -171,13 +172,13 @@ impl<'a> Stub<'a> {
         if self.remaining != 0 {
             return Err(NotEnoughData);
         }
-        
+
         if cmd.stay_in_stub == 0 {
-            self.send_response(&response);
+            self.send_response(response);
             self.target.delay_us(10_000);
             (cmd.entrypoint)();
         }
-        
+
         Ok(())
     }
 
@@ -186,8 +187,8 @@ impl<'a> Stub<'a> {
 
         if data_len > self.remaining {
             return Err(TooMuchData);
-        } 
-        
+        }
+
         if data_len % 4 != 0 {
             return Err(BadDataLen);
         }
@@ -249,7 +250,7 @@ impl<'a> Stub<'a> {
     }
 
     fn flash_data(&mut self, data: &[u8]) -> Result<(), Error> {
-        Ok(self.flash(false, data)?) // NOT SURE
+        self.flash(false, data)
     }
 
     fn flash_defl_data(&mut self, data: &[u8]) -> Result<(), Error> {
@@ -270,7 +271,7 @@ impl<'a> Stub<'a> {
             let mut in_bytes = length;
             let mut out_bytes = out_buf.len() - out_index;
             let next_out: *mut u8 = out_buf[out_index..].as_mut_ptr();
-            
+
             if self.remaining_compressed > length {
                 flags |= TINFL_FLAG_HAS_MORE_INPUT;
             }
@@ -327,18 +328,18 @@ impl<'a> Stub<'a> {
         if !self.in_flash_mode {
             return Err(NotInFlashMode);
         }
-        
+
         let checksum: u8 = data.iter().fold(0xEF, |acc, x| acc ^ x);
-        
+
         if cmd.size != data.len() as u32 {
             return Err(BadDataLen);
         }
-        
+
         if cmd.base.checksum != checksum as u32 {
             return Err(BadDataChecksum);
         }
-        
-        self.send_response(&response);
+
+        self.send_response(response);
 
         match cmd.base.code {
             FlashEncryptedData => self.flash_encrypt_data(data),
@@ -394,7 +395,7 @@ impl<'a> Stub<'a> {
         match code {
             Sync => {
                 for _ in 1..=7 {
-                    self.send_response(&response);
+                    self.send_response(response);
                 }
             }
             ReadReg => {
@@ -410,23 +411,23 @@ impl<'a> Stub<'a> {
                 self.process_begin(&cmd)? //here crashed the S3 chip
             }
             FlashData | FlashDeflData | FlashEncryptedData | MemData => {
-                let cmd: DataCommand = slice_to_struct(&payload)?;
+                let cmd: DataCommand = slice_to_struct(payload)?;
                 let data = &payload[DATA_CMD_SIZE..];
-                self.process_data(&cmd, data, &response)?;
+                self.process_data(&cmd, data, response)?;
                 response_sent = true;
             }
             FlashEnd | FlashDeflEnd => {
                 let cmd: EndFlashCommand = slice_to_struct(payload)?;
-                self.process_flash_end(&cmd, &response)?;
+                self.process_flash_end(&cmd, response)?;
             }
             MemEnd => {
                 let cmd: MemEndCommand = slice_to_struct(payload)?;
-                self.process_mem_end(&cmd, &response)?;
+                self.process_mem_end(&cmd, response)?;
             }
             SpiFlashMd5 => {
                 let cmd: SpiFlashMd5Command = slice_to_struct(payload)?;
                 let md5 = self.calculate_md5(cmd.address, cmd.size)?;
-                self.send_md5_response(&response, &md5);
+                self.send_md5_response(response, &md5);
                 response_sent = true;
             }
             SpiSetParams => {
@@ -439,7 +440,7 @@ impl<'a> Stub<'a> {
             }
             ChangeBaudrate => {
                 let baud: ChangeBaudrateCommand = slice_to_struct(payload)?;
-                self.send_response(&response);
+                self.send_response(response);
                 self.target.delay_us(10_000); // Wait for response to be transfered
                 self.target.change_baudrate(baud.old, baud.new);
                 self.send_greeting();
@@ -451,14 +452,14 @@ impl<'a> Stub<'a> {
                 self.target.erase_region(reg.address, reg.size)?;
             }
             ReadFlash => {
-                self.send_response(&response);
+                self.send_response(response);
                 let cmd: ReadFlashCommand = slice_to_struct(payload)?;
                 self.process_read_flash(&cmd.params)?;
                 response_sent = true;
             }
             GetSecurityInfo => {
                 let info = self.target.get_security_info()?;
-                self.send_security_info_response(&response, &info);
+                self.send_security_info_response(response, &info);
                 response_sent = true;
             }
             RunUserCode => {
@@ -473,7 +474,7 @@ impl<'a> Stub<'a> {
     }
 
     pub fn process_command(&mut self, payload: &[u8]) {
-        let command: CommandBase = slice_to_struct(&payload).unwrap();
+        let command: CommandBase = slice_to_struct(payload).unwrap();
         let mut response = Response::new(command.code);
 
         match self.process_cmd(payload, command.code, &mut response) {
@@ -487,7 +488,7 @@ impl<'a> Stub<'a> {
         self.send_response(&response);
     }
 
-    pub fn read_command<'c, 'd>(&'c mut self, buffer: &'d mut [u8]) -> &'d [u8] {
+    pub fn read_command<'c>(&mut self, buffer: &'c mut [u8]) -> &'c [u8] {
         read_packet(self.io, buffer)
     }
 }
@@ -495,7 +496,7 @@ impl<'a> Stub<'a> {
 mod slip {
     use super::*;
 
-    pub fn read_packet<'c, 'd>(io: &'c mut dyn InputIO, packet: &'d mut [u8]) -> &'d [u8] {
+    pub fn read_packet<'c>(io: &mut dyn InputIO, packet: &'c mut [u8]) -> &'c [u8] {
         while io.recv() != 0xC0 {}
 
         // Replase: 0xDB 0xDC -> 0xC0 and 0xDB 0xDD -> 0xDB

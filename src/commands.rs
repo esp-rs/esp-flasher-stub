@@ -178,10 +178,18 @@ pub struct ReadFlashCommand {
     pub params: ReadFlashParams,
 }
 
+#[allow(unused)]
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
+    In,
+    Out,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
 pub struct Response<'a> {
-    pub direction: u8,
+    pub direction: Direction,
     pub command: CommandCode,
     pub size: u16,
     pub value: u32,
@@ -193,7 +201,7 @@ pub struct Response<'a> {
 impl<'a> Response<'a> {
     pub fn new(cmd: CommandCode) -> Self {
         Response {
-            direction: 1,
+            direction: Direction::Out,
             command: cmd,
             size: 2,
             value: 0,

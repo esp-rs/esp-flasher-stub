@@ -57,6 +57,51 @@ pub const FLASH_BLOCK_SIZE: u32 = 65536;
 pub const FLASH_SECTOR_MASK: u32 = 0xFFFFF000;
 pub const MAX_WRITE_BLOCK: usize = 0x4000;
 
+// making the functions that actually deref the raw pointer private
+// and call them from the pub fn to mke `clippy` happy
+// https://github.com/rust-lang/rust-clippy/issues/3045
+fn spiflash_write_internal(dest_addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
+    match unsafe { esp_rom_spiflash_write(dest_addr, data, len) } {
+        0 => Ok(()),
+        _ => Err(FailedSpiOp),
+    }
+}
+
+fn write_encrypted_enable_internal() {
+    unsafe {
+        esp_rom_spiflash_write_encrypted_enable();
+    }
+}
+
+fn write_encrypted_internal(addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
+    match unsafe { esp_rom_spiflash_write_encrypted(addr, data, len) } {
+        0 => Ok(()),
+        _ => Err(FailedSpiOp),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn decompress_internal(
+    r: *mut tinfl_decompressor,
+    in_buf: *const u8,
+    in_buf_size: *mut usize,
+    out_buf_start: *mut u8,
+    out_buf_next: *mut u8,
+    out_buf_size: *mut usize,
+    flags: u32,
+) -> TinflStatus {
+    unsafe {
+        tinfl_decompress(
+            r,
+            in_buf,
+            in_buf_size,
+            out_buf_start,
+            out_buf_next,
+            out_buf_size,
+            flags,
+        )
+    }
+}
 pub trait EspCommon {
     const SPI_BASE_REG: u32 = 0x60002000;
     const SPI_RD_STATUS_REG: u32 = Self::SPI_BASE_REG + 0x2C;
@@ -66,7 +111,7 @@ pub trait EspCommon {
     const UART_BASE_REG: u32 = 0x60000000;
     const GPIO_BASE_REG: u32 = 0x60004000;
 
-    const SPI_CMD_REG: u32 = Self::SPI_BASE_REG + 0x00;
+    const SPI_CMD_REG: u32 = Self::SPI_BASE_REG;
     const SPI_ADDR_REG: u32 = Self::SPI_BASE_REG + 0x04;
     const SPI_CTRL_REG: u32 = Self::SPI_BASE_REG + 0x08;
 
@@ -111,10 +156,7 @@ pub trait EspCommon {
     }
 
     fn spiflash_write(&self, dest_addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
-        match unsafe { esp_rom_spiflash_write(dest_addr, data, len) } {
-            0 => Ok(()),
-            _ => Err(FailedSpiOp),
-        }
+        spiflash_write_internal(dest_addr, data, len)
     }
 
     fn spi_set_params(&self, params: &SpiParams) -> Result<(), Error> {
@@ -155,7 +197,7 @@ pub trait EspCommon {
     }
 
     fn spiflash_wait_for_ready(&self) {
-        while unsafe { esp_rom_spiflash_wait_idle() } != 0 {} 
+        while unsafe { esp_rom_spiflash_wait_idle() } != 0 {}
     }
 
     fn spi_write_enable(&self) {
@@ -242,10 +284,9 @@ pub trait EspCommon {
     }
 
     fn write_encrypted_enable(&self) {
-        unsafe {
-            esp_rom_spiflash_write_encrypted_enable();
-        }
+        write_encrypted_enable_internal()
     }
+
     fn write_encrypted_disable(&self) {
         unsafe {
             esp_rom_spiflash_write_encrypted_disable();
@@ -253,12 +294,10 @@ pub trait EspCommon {
     }
 
     fn write_encrypted(&self, addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
-        match unsafe { esp_rom_spiflash_write_encrypted(addr, data, len) } {
-            0 => Ok(()),
-            _ => Err(FailedSpiOp),
-        }
+        write_encrypted_internal(addr, data, len)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn decompress(
         &self,
         r: *mut tinfl_decompressor,
@@ -269,17 +308,15 @@ pub trait EspCommon {
         out_buf_size: *mut usize,
         flags: u32,
     ) -> TinflStatus {
-        unsafe {
-            tinfl_decompress(
-                r,
-                in_buf,
-                in_buf_size,
-                out_buf_start,
-                out_buf_next,
-                out_buf_size,
-                flags,
-            )
-        }
+        decompress_internal(
+            r,
+            in_buf,
+            in_buf_size,
+            out_buf_start,
+            out_buf_next,
+            out_buf_size,
+            flags,
+        )
     }
 }
 #[derive(Default)]
@@ -306,7 +343,7 @@ impl EspCommon for Esp32 {
         Err(InvalidCommand)
     }
 
-    // the ROM function has been replaced with patched code so we have to "override" it 
+    // the ROM function has been replaced with patched code so we have to "override" it
     // https://github.com/espressif/esp-idf/blob/master/components/esp_rom/esp32/ld/esp32.rom.spiflash.ld#L23
     fn unlock_flash(&self) -> Result<(), Error> {
         let mut status: u32 = 0;
