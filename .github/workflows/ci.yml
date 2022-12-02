@@ -20,6 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        chips: [esp32c3]
         toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@v2
@@ -30,10 +31,33 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           components: rust-src
           default: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --target=riscv32imc-unknown-none-elf --features ${{ matrix.chips }}
+
+  check-xtensa:
+    name: Check Xtensa
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chips: [esp32, esp32s3]
+        toolchain: [stable, nightly]
+    env:
+      RUSTFLAGS: "--cfg target_has_atomic=\"8\" --cfg target_has_atomic=\"16\" --cfg target_has_atomic=\"32\" --cfg target_has_atomic=\"ptr\""
+    steps:
+      - uses: actions/checkout@v2
+      - uses: esp-rs/xtensa-toolchain@v1.4
+        with:
+          default: true
+          ldproxy: false
+          buildtargets: ${{ matrix.chips }}
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
           command: check
+          args: --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }}
 
   # --------------------------------------------------------------------------
   # Clippy
@@ -41,17 +65,43 @@ jobs:
   clippy-riscv:
     name: Run clippy on RISC-V builds
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chips: [esp32c3]
+        toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           target: riscv32imc-unknown-none-elf
-          toolchain: stable
-          components: clippy,rust-src
+          toolchain: ${{ matrix.toolchain }}
+          components: clippy, rust-src
           default: true
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings
+          args: --features ${{ matrix.chips }} --target riscv32imc-unknown-none-elf -- --no-deps
+
+  clippy-xtensa:
+    name: Run clippy on Xtensa builds
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chips: [esp32, esp32s3]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: esp-rs/xtensa-toolchain@v1.2
+        with:
+          default: true
+          ldproxy: false
+          buildtargets: ${{ matrix.chips }}
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -Zbuild-std=core --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }} -- --no-deps
+
