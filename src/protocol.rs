@@ -36,6 +36,8 @@ pub struct Stub<'a> {
     target: crate::targets::Esp32,
     #[cfg(feature = "esp32s3")]
     target: crate::targets::Esp32s3,
+    #[cfg(feature = "esp32s2")]
+    target: crate::targets::Esp32s2,
 }
 
 fn slice_to_struct<T: Sized + Copy>(slice: &[u8]) -> Result<T, Error> {
@@ -499,7 +501,7 @@ mod slip {
     pub fn read_packet<'c>(io: &mut dyn InputIO, packet: &'c mut [u8]) -> &'c [u8] {
         while io.recv() != 0xC0 {}
 
-        // Replase: 0xDB 0xDC -> 0xC0 and 0xDB 0xDD -> 0xDB
+        // Replace: 0xDB 0xDC -> 0xC0 and 0xDB 0xDD -> 0xDB
         let mut i = 0;
         loop {
             match io.recv() {

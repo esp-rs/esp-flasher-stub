@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        chips: [esp32, esp32s3]
+        chips: [esp32, esp32s2, esp32s3]
         toolchain: [stable, nightly]
     env:
       RUSTFLAGS: "--cfg target_has_atomic=\"8\" --cfg target_has_atomic=\"16\" --cfg target_has_atomic=\"32\" --cfg target_has_atomic=\"ptr\""
@@ -91,7 +91,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        chips: [esp32, esp32s3]
+        chips: [esp32, esp32s2, esp32s3]
     steps:
       - uses: actions/checkout@v2
       - uses: esp-rs/xtensa-toolchain@v1.2

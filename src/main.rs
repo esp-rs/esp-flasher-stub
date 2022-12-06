@@ -28,10 +28,11 @@ const MSG_BUFFER_SIZE: usize = targets::MAX_WRITE_BLOCK + 0x400;
 #[entry]
 fn main() -> ! {
     let peripherals = pac::Peripherals::take().unwrap();
-    #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+    #[cfg(not(feature = "esp32"))]
     let system = peripherals.SYSTEM.split();
     #[cfg(any(feature = "esp32"))]
     let system = peripherals.DPORT.split();
+
     let clocks = ClockControl::boot_defaults(system.clock_control).freeze();
 
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
