@@ -2,12 +2,26 @@
 
 Rust implementation of flasher stub located in [esptool](https://github.com/espressif/esptool/).
 
-Currently only supports ESP32-C3 through UART.
+Currently only supports ESP32, ESP32S3 and ESP32-C3 through UART.
 
 ## Build
 
+### ESP32
+
 ```
-cargo build
+ cargo +esp build --features=esp32 --target=xtensa-esp32-none-elf --release
+```
+
+### ESP32S3
+
+```
+ cargo +esp build --features=esp32s3 --target=xtensa-esp32s3-none-elf --release
+```
+
+### ESP32-C3
+
+```
+ cargo build --features=esp32c3 --target=riscv32imc-unknown-none-elf --release
 ```
 
 ## Test
@@ -23,7 +37,7 @@ binary for ESP32C3 has to be replaced the one otained from `esp-flasher-stub`.
 
 In order to run `test_esptool.py` follow steps below:
 
-- Build `esp-flasher-stub` with `cargo build --release`
+- Build `esp-flasher-stub` as described in the build section above.
 - Clone esptool to the same directory where `esp-flasher-stub` resides.
 
 ```
@@ -44,5 +58,3 @@ git am ../../esp-flasher-stub/esptool.patch
 cd test
 make -C ../flasher_stub/ && python test_esptool.py /dev/ttyUSB0 esp32c3 115200
 ```
-
-This last step requires IDF to be exported.

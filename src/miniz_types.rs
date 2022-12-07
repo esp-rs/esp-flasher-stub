@@ -7,7 +7,6 @@ const TINFL_FAST_LOOKUP_SIZE: usize = 1 << TINFL_FAST_LOOKUP_BITS;
 pub const TINFL_FLAG_PARSE_ZLIB_HEADER: u32 = 1;
 pub const TINFL_FLAG_HAS_MORE_INPUT: u32 = 2;
 
-#[allow(unused)]
 #[repr(C)]
 #[derive(PartialEq, Eq, PartialOrd)]
 pub enum TinflStatus {

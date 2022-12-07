@@ -1,8 +1,8 @@
-#[allow(unused)]
-#[repr(u8)]
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+// Size of sesponse without data reference
+pub const RESPONSE_SIZE: usize = 10;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Error {
-    None = 0,
     BadDataLen = 0xC0,
     BadDataChecksum = 0xC1,
     BadBlocksize = 0xC2,
@@ -20,11 +20,12 @@ pub enum Error {
     Err0x33 = 0x33,
     Err0x34 = 0x34,
     Err0x35 = 0x35,
+
+    EraseErr = 0x36, //TODO: Is it OK to add custom Error?
 }
 
-#[allow(unused)]
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
-pub enum Code {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommandCode {
     FlashBegin = 0x02,
     FlashData = 0x03,
     FlashEnd = 0x04,
@@ -49,67 +50,75 @@ pub enum Code {
     FlashEncryptedData = 0xD4,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct Base {
-    direction: Direction,
-    pub code: Code,
+pub struct CommandBase {
+    pub direction: u8,
+    pub code: CommandCode,
     pub size: u16,
     pub checksum: u32,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct Sync {
-    pub base: Base,
+pub struct SyncCommand {
+    pub base: CommandBase,
     pub payload: [u8; 36],
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct Begin {
-    pub base: Base,
+pub struct BeginCommand {
+    pub base: CommandBase,
     pub total_size: u32,
     pub packt_count: u32,
     pub packet_size: u32,
     pub offset: u32,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct Data {
-    pub base: Base,
+pub struct DataCommand {
+    pub base: CommandBase,
     pub size: u32,
     pub sequence_num: u32,
     pub reserved: [u32; 2],
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct End {
-    pub base: Base,
+pub struct EndFlashCommand {
+    pub base: CommandBase,
     pub run_user_code: u32,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct WriteReg {
-    pub base: Base,
+pub struct MemEndCommand {
+    pub base: CommandBase,
+    pub stay_in_stub: u32,
+    pub entrypoint: fn(),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C, packed(1))]
+pub struct WriteRegCommand {
+    pub base: CommandBase,
     pub address: u32,
     pub value: u32,
     pub mask: u32,
     pub delay_us: u32,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct ReadReg {
-    pub base: Base,
+pub struct ReadRegCommand {
+    pub base: CommandBase,
     pub address: u32,
 }
 
 // Possibly move to other module
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
 pub struct SpiParams {
     pub id: u32,
@@ -120,40 +129,40 @@ pub struct SpiParams {
     pub status_mask: u32,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct SpiSetParams {
-    pub base: Base,
+pub struct SpiSetParamsCommand {
+    pub base: CommandBase,
     pub params: SpiParams,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct ChangeBaudrate {
-    pub base: Base,
+pub struct ChangeBaudrateCommand {
+    pub base: CommandBase,
     pub new: u32,
     pub old: u32,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct SpiFlashMd5 {
-    pub base: Base,
+pub struct SpiFlashMd5Command {
+    pub base: CommandBase,
     pub address: u32,
     pub size: u32,
     pub reserved: [u32; 2],
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct EraseRegion {
-    pub base: Base,
+pub struct EraseRegionCommand {
+    pub base: CommandBase,
     pub address: u32,
     pub size: u32,
 }
 
 // Possibly move to other module
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
 pub struct ReadFlashParams {
     pub address: u32,
@@ -162,52 +171,42 @@ pub struct ReadFlashParams {
     pub max_inflight: u32,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
-pub struct ReadFlash {
-    pub base: Base,
+pub struct ReadFlashCommand {
+    pub base: CommandBase,
     pub params: ReadFlashParams,
 }
 
 #[allow(unused)]
 #[repr(u8)]
-#[derive(PartialEq, Copy, Clone, Debug)]
-enum Direction {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
     In,
     Out,
 }
 
-#[repr(u8)]
-#[derive(PartialEq, Copy, Clone)]
-enum Status {
-    Success,
-    Failure,
-}
-
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C, packed(1))]
 pub struct Response<'a> {
-    direction: Direction,
-    command: Code,
-    size: u16,
-    value: u32,
-    status: Status,
-    error: Error,
+    pub direction: Direction,
+    pub command: CommandCode,
+    pub size: u16,
+    pub value: u32,
+    pub status: u8,
+    pub error: u8,
     pub data: &'a [u8],
 }
 
-// Size of sesponse without data reference
-pub const RESPONSE_SIZE: usize = 10;
-
 impl<'a> Response<'a> {
-    pub fn new(cmd: Code) -> Self {
+    pub fn new(cmd: CommandCode) -> Self {
         Response {
             direction: Direction::Out,
             command: cmd,
             size: 2,
             value: 0,
-            status: Status::Success,
-            error: Error::None,
+            status: 0,
+            error: 0,
             data: &[],
         }
     }
@@ -216,14 +215,13 @@ impl<'a> Response<'a> {
         self.value = value;
     }
 
-    #[allow(unused)]
     pub fn data(&mut self, data: &'a [u8]) {
         self.size = 2 + data.len() as u16;
         self.data = data;
     }
 
     pub fn error(&mut self, error: Error) {
-        self.status = Status::Failure;
-        self.error = error;
+        self.status = 1;
+        self.error = error as u8;
     }
 }

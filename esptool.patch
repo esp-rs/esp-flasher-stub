@@ -1,52 +1,18 @@
-From 33d17d9ad44487d7107f401d32780345724fb174 Mon Sep 17 00:00:00 2001
+From 5ff6e377e8ddd123b6d6112d1547908bd2a47e01 Mon Sep 17 00:00:00 2001
 From: Martin Valik <martin.valik@espressif.com>
 Date: Thu, 23 Jun 2022 10:18:54 +0200
 Subject: [PATCH] new stub
 
 ---
- esptool/targets/esp8266.py |  4 ++--
- flasher_stub/Makefile      | 11 ++++-------
- test/test_esptool.py       |  4 ++--
- 3 files changed, 8 insertions(+), 11 deletions(-)
+ flasher_stub/Makefile | 3 ++-
+ test/test_esptool.py  | 4 ++--
+ 2 files changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/esptool/targets/esp8266.py b/esptool/targets/esp8266.py
-index d984017..e42a13e 100644
---- a/esptool/targets/esp8266.py
-+++ b/esptool/targets/esp8266.py
-@@ -4,7 +4,7 @@
- # SPDX-License-Identifier: GPL-2.0-or-later
- 
- from ..loader import ESPLoader
--from ..stub_flasher import ESP8266StubCode
-+# from ..stub_flasher import ESP8266StubCode
- from ..util import FatalError, NotImplementedInROMError
- 
- 
-@@ -14,7 +14,7 @@ class ESP8266ROM(ESPLoader):
-     CHIP_NAME = "ESP8266"
-     IS_STUB = False
- 
--    STUB_CODE = ESP8266StubCode
-+    # STUB_CODE = ESP8266StubCode
- 
-     CHIP_DETECT_MAGIC_VALUE = [0xFFF0C101]
- 
 diff --git a/flasher_stub/Makefile b/flasher_stub/Makefile
-index af51a39..ef6323a 100644
+index af51a39..1ce39b5 100644
 --- a/flasher_stub/Makefile
 +++ b/flasher_stub/Makefile
-@@ -83,10 +83,6 @@ CFLAGS_ESPRISCV32 = -std=c99 -Wall -Werror -Os \
-          -Wl,-static -g -ffunction-sections -Wl,--gc-sections -Iinclude -Lld
- LDLIBS = -lgcc
- 
--$(STUB_ELF_8266): $(SRCS) $(SRCS_8266) $(BUILD_DIR) ld/stub_8266.ld | Makefile
--	@echo "  CC(8266)   $^ -> $@"
--	$(Q) $(CROSS_8266)gcc $(CFLAGS) -DESP8266=1 -Tstub_8266.ld -Wl,-Map=$(@:.elf=.map) -o $@ $(filter %.c, $^) $(LDLIBS)
--
- $(STUB_ELF_32): $(SRCS) $(BUILD_DIR) ld/stub_32.ld | Makefile
- 	@echo "  CC(32)   $^ -> $@"
- 	$(Q) $(CROSS_32)gcc $(CFLAGS) -DESP32=1 -Tstub_32.ld -Wl,-Map=$(@:.elf=.map) -o $@ $(filter %.c, $^) $(LDLIBS)
-@@ -105,7 +101,7 @@ $(STUB_ELF_32S3): $(SRCS) $(BUILD_DIR) ld/stub_32s3.ld
+@@ -105,7 +105,7 @@ $(STUB_ELF_32S3): $(SRCS) $(BUILD_DIR) ld/stub_32s3.ld
  
  $(STUB_ELF_32C3): $(SRCS) $(BUILD_DIR) ld/stub_32c3.ld
  	@echo "  CC(32C3)   $^ -> $@"
@@ -55,26 +21,19 @@ index af51a39..ef6323a 100644
  
  $(STUB_ELF_32C6BETA): $(SRCS) $(BUILD_DIR) ld/stub_32c6_beta.ld
  	@echo "  CC(32C6)   $^ -> $@"
-@@ -123,11 +119,12 @@ $(STUB_ELF_32C2): $(SRCS) $(BUILD_DIR) ld/stub_32c2.ld
- 	@echo "  CC(32C2)   $^ -> $@"
- 	$(Q) $(CROSS_32C2)gcc $(CFLAGS_ESPRISCV32) -DESP32C2=1 -Tstub_32c2.ld -Wl,-Map=$(@:.elf=.map) -o $@ $(filter %.c, $^) $(LDLIBS)
- 
--$(STUB_PY): $(STUB_ELF_8266) $(STUB_ELF_32) $(STUB_ELF_32S2) $(STUB_ELF_32S3_BETA_2) $(STUB_ELF_32S3) $(STUB_ELF_32C3) $(STUB_ELF_32C6BETA) $(STUB_ELF_32H2_BETA_1) $(STUB_ELF_32H2_BETA_2) $(STUB_ELF_32C2) wrap_stub.py
-+$(STUB_PY): $(STUB_ELF_32) $(STUB_ELF_32S2) $(STUB_ELF_32S3_BETA_2) $(STUB_ELF_32S3) $(STUB_ELF_32C3) $(STUB_ELF_32C6BETA) $(STUB_ELF_32H2_BETA_1) $(STUB_ELF_32H2_BETA_2) $(STUB_ELF_32C2) wrap_stub.py
+@@ -126,6 +126,7 @@ $(STUB_ELF_32C2): $(SRCS) $(BUILD_DIR) ld/stub_32c2.ld
+ $(STUB_PY): $(STUB_ELF_8266) $(STUB_ELF_32) $(STUB_ELF_32S2) $(STUB_ELF_32S3_BETA_2) $(STUB_ELF_32S3) $(STUB_ELF_32C3) $(STUB_ELF_32C6BETA) $(STUB_ELF_32H2_BETA_1) $(STUB_ELF_32H2_BETA_2) $(STUB_ELF_32C2) wrap_stub.py
  	@echo "  WRAP $^ -> $@"
  	$(Q) $(WRAP_STUB) --out-file $@ $(filter %.elf,$^)
 +	cp build/stub_flasher_snippet.py ../esptool/stub_flasher.py
  
--embed: $(STUB_ELF_8266) $(STUB_ELF_32) $(STUB_ELF_32S2) $(STUB_ELF_32S3_BETA_2) $(STUB_ELF_32S3) $(STUB_ELF_32C3) $(STUB_ELF_32C6BETA) $(STUB_ELF_32H2_BETA_1) $(STUB_ELF_32H2_BETA_2) $(STUB_ELF_32C2) wrap_stub.py
-+embed: $(STUB_ELF_32) $(STUB_ELF_32S2) $(STUB_ELF_32S3_BETA_2) $(STUB_ELF_32S3) $(STUB_ELF_32C3) $(STUB_ELF_32C6BETA) $(STUB_ELF_32H2_BETA_1) $(STUB_ELF_32H2_BETA_2) $(STUB_ELF_32C2) wrap_stub.py
+ embed: $(STUB_ELF_8266) $(STUB_ELF_32) $(STUB_ELF_32S2) $(STUB_ELF_32S3_BETA_2) $(STUB_ELF_32S3) $(STUB_ELF_32C3) $(STUB_ELF_32C6BETA) $(STUB_ELF_32H2_BETA_1) $(STUB_ELF_32H2_BETA_2) $(STUB_ELF_32C2) wrap_stub.py
  	@echo "  WRAP $^ -> esptool.py"
- 	$(Q) $(WRAP_STUB) $(filter %.elf,$^)
- 
 diff --git a/test/test_esptool.py b/test/test_esptool.py
-index 8c9ba67..156913a 100755
+index 79d22a6..e8e019e 100755
 --- a/test/test_esptool.py
 +++ b/test/test_esptool.py
-@@ -37,7 +37,7 @@ NODEMCU_FILE = "nodemcu-master-7-modules-2017-01-19-11-10-03-integer.bin"
+@@ -38,7 +38,7 @@ NODEMCU_FILE = "nodemcu-master-7-modules-2017-01-19-11-10-03-integer.bin"
  TEST_DIR = os.path.abspath(os.path.dirname(__file__))
  os.chdir(os.path.dirname(__file__))
  try:
@@ -83,7 +42,7 @@ index 8c9ba67..156913a 100755
  except KeyError:
      ESPTOOL_PY = os.path.join(TEST_DIR, "..", "esptool/__init__.py")
  ESPSECURE_PY = os.path.join(TEST_DIR, "..", "espsecure/__init__.py")
-@@ -1014,4 +1014,4 @@ if __name__ == "__main__":
+@@ -1015,4 +1015,4 @@ if __name__ == "__main__":
          with io.open("report.xml", "wb") as output:
              unittest.main(testRunner=xmlrunner.XMLTestRunner(output=output))
      except ImportError:
