@@ -253,6 +253,11 @@ pub trait EspCommon {
     }
 
     fn init(&self) {
+        #[allow(unused_variables, unused_mut)]
+        let mut spiconfig: u32 =  0;
+        // ESP32C2 and newer chips don't have `ets_efuse_get_spiconfig()`
+        // use 0 instead 
+        #[cfg(not(feature = "esp32c2"))]
         let mut spiconfig = unsafe { ets_efuse_get_spiconfig() };
 
         let strapping = self.read_register(Self::GPIO_STRAP_REG);
@@ -323,6 +328,9 @@ pub trait EspCommon {
 pub struct Esp32c3;
 
 #[derive(Default)]
+pub struct Esp32c2;
+
+#[derive(Default)]
 pub struct Esp32;
 
 #[derive(Default)]
@@ -330,8 +338,6 @@ pub struct Esp32s2;
 
 #[derive(Default)]
 pub struct Esp32s3;
-
-impl EspCommon for Esp32c3 {}
 
 impl EspCommon for Esp32 {
     const SPI_BASE_REG: u32 = 0x3ff42000;
@@ -377,3 +383,5 @@ impl EspCommon for Esp32 {
 
 impl EspCommon for Esp32s2 {}
 impl EspCommon for Esp32s3 {}
+impl EspCommon for Esp32c3 {}
+impl EspCommon for Esp32c2 {}

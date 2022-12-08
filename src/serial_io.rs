@@ -50,6 +50,7 @@ fn UART0() {
     uart_isr();
     #[cfg(any(feature = "esp32", feature = "esp32s2", feature = "esp32s3"))]
     interrupt::clear(ProCpu, Interrupt17LevelPriority1);
-    #[cfg(feature = "esp32c3")]
+    #[cfg(any(feature = "esp32c3", feature = "esp32c2"))]
     interrupt::clear(ProCpu, Interrupt1);
 }
+
