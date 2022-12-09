@@ -326,6 +326,9 @@ pub struct Esp32c3;
 pub struct Esp32;
 
 #[derive(Default)]
+pub struct Esp32s2;
+
+#[derive(Default)]
 pub struct Esp32s3;
 
 impl EspCommon for Esp32c3 {}
@@ -372,4 +375,5 @@ impl EspCommon for Esp32 {
     }
 }
 
+impl EspCommon for Esp32s2 {}
 impl EspCommon for Esp32s3 {}

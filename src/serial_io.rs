@@ -12,7 +12,7 @@ const RX_QUEUE_SIZE: usize = crate::targets::MAX_WRITE_BLOCK + 0x400;
 
 static mut RX_QUEUE: Deque<u8, RX_QUEUE_SIZE> = Deque::new();
 
-impl<'a, T: Instance> InputIO for Serial<T> {
+impl<T: Instance> InputIO for Serial<T> {
     fn recv(&mut self) -> u8 {
         unsafe { while critical_section::with(|_| RX_QUEUE.is_empty()) {} }
         unsafe { critical_section::with(|_| RX_QUEUE.pop_front().unwrap()) }
@@ -27,7 +27,18 @@ fn uart_isr() {
     let uart = unsafe { &*UART0::ptr() };
 
     while uart.status.read().rxfifo_cnt().bits() > 0 {
-        let data = uart.fifo.read().rxfifo_rd_byte().bits();
+        let offset = if cfg!(feature = "esp32s2") {
+            0x20C0_0000
+        } else {
+            0
+        };
+
+        let data = unsafe {
+            let data = (uart.fifo.as_ptr() as *mut u8).offset(offset)
+                as *mut crate::hal::pac::generic::Reg<crate::hal::pac::uart0::fifo::FIFO_SPEC>;
+            (*data).read().rxfifo_rd_byte().bits()
+        };
+
         unsafe { RX_QUEUE.push_back(data).unwrap() };
     }
 
@@ -35,22 +46,10 @@ fn uart_isr() {
 }
 
 #[interrupt]
-#[cfg(feature = "esp32")]
 fn UART0() {
     uart_isr();
+    #[cfg(any(feature = "esp32", feature = "esp32s2", feature = "esp32s3"))]
     interrupt::clear(ProCpu, Interrupt17LevelPriority1);
-}
-
-#[interrupt]
-#[cfg(feature = "esp32s3")]
-fn UART0() {
-    uart_isr();
-    interrupt::clear(ProCpu, Interrupt17LevelPriority1);
-}
-
-#[interrupt]
-#[cfg(feature = "esp32c3")]
-fn UART0() {
-    uart_isr();
+    #[cfg(feature = "esp32c3")]
     interrupt::clear(ProCpu, Interrupt1);
 }
