@@ -224,20 +224,20 @@ dependencies = [
 
 [[package]]
 name = "esp-backtrace"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "857b0ab2194767e4354c607b980b00a3f507659a3b793245144a992f3d81673f"
+checksum = "1834d20d58dc6baaf063924cb3ffa0b7f6388a593bae310c9f228c4bd47f0dde"
 dependencies = [
  "esp-println",
- "riscv 0.8.0",
+ "riscv 0.10.0",
  "xtensa-lx-rt",
 ]
 
 [[package]]
 name = "esp-hal-common"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fc976d16f2d2b6870077118a0bc41d886fff659becf2f705df4a843d56e019f"
+checksum = "007db8d84050d19fec367bece124cccbdf6837ff0ea8e1a4fc04599148ab5ea1"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -246,6 +246,7 @@ dependencies = [
  "esp-hal-procmacros",
  "esp-synopsys-usb-otg",
  "esp32",
+ "esp32c2",
  "esp32c3",
  "esp32s2",
  "esp32s3",
@@ -294,9 +295,9 @@ dependencies = [
 
 [[package]]
 name = "esp32"
-version = "0.15.0"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90b7ba16971f0c4e6f4b29a36c561312e1594ab4d02e6ea234171885a32a94b9"
+checksum = "1bba88ea125f6f224121dc96af129b74c5e2a14952891b745e09bc6f477274ed"
 dependencies = [
  "critical-section",
  "vcell",
@@ -306,14 +307,39 @@ dependencies = [
 
 [[package]]
 name = "esp32-hal"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00da755651d22397709e20f97ccd49be4c70451a6042e0a44480b3de092936ae"
+checksum = "e347e1f9701cfb58ac383fa41e7ea714ed309f293b1e9272394d9ea9b89f36ad"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
  "xtensa-lx",
  "xtensa-lx-rt",
+]
+
+[[package]]
+name = "esp32c2"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6aae8ee1a5745382aea9c9b28fc128f631dc3b34e55ba19634ac73aa164b8682"
+dependencies = [
+ "critical-section",
+ "riscv 0.10.0",
+ "riscv-rt",
+ "vcell",
+]
+
+[[package]]
+name = "esp32c2-hal"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e42c915fef9c37f191327eca2dce3730b622f04e47979be207fb9de5d6f56222"
+dependencies = [
+ "embedded-hal",
+ "esp-hal-common",
+ "r0",
+ "riscv 0.10.0",
+ "riscv-rt",
 ]
 
 [[package]]
@@ -324,29 +350,29 @@ checksum = "677b6cc003e2f7384c5bd02286e5ee04d9ac0adc875abff6c3316175af20eaa8"
 dependencies = [
  "critical-section",
  "riscv 0.10.0",
- "riscv-rt 0.10.0",
+ "riscv-rt",
  "vcell",
 ]
 
 [[package]]
 name = "esp32c3-hal"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98fbc9b407fa1d70e9241d6d0baf016dc76383cf1d9cc9c6b3880d9c75291298"
+checksum = "dccecada61692e6d3fb8349a630c1fc8cfac144cb3cb52763624db8ec1373111"
 dependencies = [
  "cfg-if",
  "embedded-hal",
  "esp-hal-common",
  "r0",
  "riscv 0.10.0",
- "riscv-rt 0.10.0",
+ "riscv-rt",
 ]
 
 [[package]]
 name = "esp32s2"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "158d1ad57408572d1d820b12647ee9cb68776cd8404ad47b26ced1bbf02e1359"
+checksum = "05f02409616e9bcad247a07d34b72bc8ad3dca1c8ea26f5e4a6a7caec0fef286"
 dependencies = [
  "critical-section",
  "vcell",
@@ -356,9 +382,9 @@ dependencies = [
 
 [[package]]
 name = "esp32s2-hal"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "942d4f702a86c76097145281eca8881b8cfdda16a0c3e6acc571bede26aea340"
+checksum = "bddae261b36c47ef5594b19f1fbf77e2d3637b2272afe8cc66d5f051d8932a7f"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -369,9 +395,9 @@ dependencies = [
 
 [[package]]
 name = "esp32s3"
-version = "0.8.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b386f809a74303847184dee12763b5f49c1880fb11778b12b15e8790ba93c91"
+checksum = "6af4af40ef25226541eac0ca76793618e4b1dbb5d5116b39cea9c72340cae8ec"
 dependencies = [
  "critical-section",
  "vcell",
@@ -381,9 +407,9 @@ dependencies = [
 
 [[package]]
 name = "esp32s3-hal"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29a7c8e997119c51fddb9f4a8f107a937afc2617ee6fff08508067b090c3f5e7"
+checksum = "ebe72253953413cd960a450505160dadf14bfe34ab0653fead5d464c9fdda1cb"
 dependencies = [
  "bare-metal",
  "embedded-hal",
@@ -399,7 +425,9 @@ dependencies = [
  "assert2",
  "critical-section",
  "esp-backtrace",
+ "esp-println",
  "esp32-hal",
+ "esp32c2-hal",
  "esp32c3-hal",
  "esp32s2-hal",
  "esp32s3-hal",
@@ -409,7 +437,7 @@ dependencies = [
  "mockall",
  "mockall_double",
  "riscv 0.9.0",
- "riscv-rt 0.9.0",
+ "riscv-rt",
  "xtensa-lx",
  "xtensa-lx-rt",
 ]
@@ -641,9 +669,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "1.0.8"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9423e2b32f7a043629287a536f21951e8c6a82482d0acb1eeebfc90bc2225b22"
+checksum = "b1de2e551fb905ac83f73f7aedf2f0cb4a0da7e35efa24a202a936269f1f18e1"
 
 [[package]]
 name = "predicates"
@@ -742,17 +770,6 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
 name = "riscv"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e2856a701069e2d262b264750d382407d272d5527f7a51d3777d1805b4e2d3c"
-dependencies = [
- "bare-metal",
- "bit_field",
- "embedded-hal",
-]
-
-[[package]]
-name = "riscv"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73fc4bc7113424814738fe79755a5764e392b3d4d1bc757e6aa6f61cede32095"
@@ -775,24 +792,12 @@ dependencies = [
 
 [[package]]
 name = "riscv-atomic-emulation-trap"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c14f171f5b52a5608b55b027aa5557e190b1bb47764a293cd7d48bfb418ab009"
+checksum = "8149334f67011146f603c58b63f5b370ae71eb9700988fde89a6d5a6cd5987ea"
 dependencies = [
- "riscv 0.8.0",
- "riscv-rt 0.9.0",
- "riscv-target",
-]
-
-[[package]]
-name = "riscv-rt"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "527ddfacbbfeed89256163c2655b0392c4aa76dd95c0189dc05044bf2c47c3f8"
-dependencies = [
- "r0",
- "riscv 0.8.0",
- "riscv-rt-macros",
+ "riscv 0.10.0",
+ "riscv-rt",
  "riscv-target",
 ]
 
@@ -858,9 +863,9 @@ checksum = "e25dfac463d778e353db5be2449d1cce89bd6fd23c9f1ea21310ce6e5a1b29c4"
 
 [[package]]
 name = "serde"
-version = "1.0.149"
+version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "256b9932320c590e707b94576e3cc1f7c9024d0ee6612dfbcf1cb106cbe8e055"
+checksum = "e326c9ec8042f1b5da33252c8a37e9ffbd2c9bef0155215b6e6c80c790e05f91"
 
 [[package]]
 name = "spin"
@@ -921,9 +926,9 @@ checksum = "95059e91184749cb66be6dc994f67f182b6d897cb3df74a5bf66b5e709295fd8"
 
 [[package]]
 name = "typenum"
-version = "1.15.0"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
+checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 
 [[package]]
 name = "unicode-ident"
@@ -979,9 +984,9 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "xtensa-atomic-emulation-trap"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "264d9c2931689a443dea35af6a6cd0eec2ac3ee55fc3aa7fc9bc96284d7c36c1"
+checksum = "f25dc1a92ac9345c5a6fb496ea434e8421f8173d560855d8bd63db061ed89b8b"
 dependencies = [
  "xtensa-lx-rt",
 ]
@@ -1000,9 +1005,9 @@ dependencies = [
 
 [[package]]
 name = "xtensa-lx-rt"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33a17a83d25998da4f2dca85afb6456ea340d3bde0211bebac011eb45dcbd2f4"
+checksum = "c5e7d36626db2a67ba9b874988181d1dac18706914e804fca846add0c5e5eddb"
 dependencies = [
  "bare-metal",
  "core-isa-parser",

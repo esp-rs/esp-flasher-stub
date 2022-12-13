@@ -49,4 +49,17 @@ fn main() {
 
         println!("cargo:rustc-link-arg=-Thal-defaults.x");
     }
+
+    #[cfg(feature = "esp32c2")]
+    {
+        fs::copy("ld/esp32c2_stub.x", out_dir.join("esp32c2_stub.x")).unwrap();
+        println!("cargo:rerun-if-changed=ld/esp32c2_stub.x");
+        println!("cargo:rustc-link-arg=-Tld/esp32c2_stub.x");
+
+        fs::copy("ld/esp32c2_rom.x", out_dir.join("esp32c2_rom.x")).unwrap();
+        println!("cargo:rerun-if-changed=ld/ld/esp32c2_rom.x");
+        println!("cargo:rustc-link-arg=-Tld/esp32c2_rom.x");
+
+        println!("cargo:rustc-link-arg=-Thal-defaults.x");
+    }
 }

@@ -30,10 +30,13 @@ fn main() -> ! {
     let peripherals = pac::Peripherals::take().unwrap();
     #[cfg(not(feature = "esp32"))]
     let system = peripherals.SYSTEM.split();
-    #[cfg(any(feature = "esp32"))]
+    #[cfg(feature = "esp32")]
     let system = peripherals.DPORT.split();
 
-    let clocks = ClockControl::boot_defaults(system.clock_control).freeze();
+    #[cfg(not(feature = "esp32c2"))]
+    let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); //TODO: configure clocks for all chips
+    #[cfg(feature = "esp32c2")]
+    let clocks = ClockControl::configure(system.clock_control, flasher_stub::hal::clock::CpuClock::Clock120MHz).freeze();
 
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
     let pins = TxRxPins::new_tx_rx(

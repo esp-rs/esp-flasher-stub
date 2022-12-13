@@ -32,6 +32,8 @@ pub struct Stub<'a> {
     in_flash_mode: bool,
     #[cfg(feature = "esp32c3")]
     target: crate::targets::Esp32c3,
+    #[cfg(feature = "esp32c2")]
+    target: crate::targets::Esp32c2,
     #[cfg(feature = "esp32")]
     target: crate::targets::Esp32,
     #[cfg(feature = "esp32s3")]
@@ -410,7 +412,7 @@ impl<'a> Stub<'a> {
             }
             FlashBegin | MemBegin | FlashDeflBegin => {
                 let cmd: BeginCommand = slice_to_struct(payload)?;
-                self.process_begin(&cmd)? //here crashed the S3 chip
+                self.process_begin(&cmd)?
             }
             FlashData | FlashDeflData | FlashEncryptedData | MemData => {
                 let cmd: DataCommand = slice_to_struct(payload)?;

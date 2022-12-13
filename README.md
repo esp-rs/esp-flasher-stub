@@ -2,7 +2,7 @@
 
 Rust implementation of flasher stub located in [esptool](https://github.com/espressif/esptool/).
 
-Currently supports ESP32, ESP32S2, ESP32S3 and ESP32C3 through UART.
+Currently supports ESP32, ESP32S2, ESP32S3, ESP32C3 and ESP32C2 through UART.
 
 ## Build
 
@@ -28,6 +28,12 @@ Currently supports ESP32, ESP32S2, ESP32S3 and ESP32C3 through UART.
 
 ```
  cargo build --features=esp32c3 --target=riscv32imc-unknown-none-elf --release
+```
+
+### ESP32C2
+
+```
+ cargo build --features=esp32c2 --target=riscv32imc-unknown-none-elf --release
 ```
 
 ## Test
