@@ -425,7 +425,6 @@ dependencies = [
  "assert2",
  "critical-section",
  "esp-backtrace",
- "esp-println",
  "esp32-hal",
  "esp32c2-hal",
  "esp32c3-hal",
@@ -436,7 +435,7 @@ dependencies = [
  "md-5",
  "mockall",
  "mockall_double",
- "riscv 0.9.0",
+ "riscv 0.10.0",
  "riscv-rt",
  "xtensa-lx",
  "xtensa-lx-rt",
@@ -669,9 +668,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "1.0.9"
+version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1de2e551fb905ac83f73f7aedf2f0cb4a0da7e35efa24a202a936269f1f18e1"
+checksum = "cf1c2c742266c2f1041c914ba65355a83ae8747b05f208319784083583494b4b"
 
 [[package]]
 name = "predicates"
