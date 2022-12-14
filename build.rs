@@ -15,6 +15,32 @@ fn main() {
         println!("cargo:rustc-link-arg=-Tld/esp32_rom.x");
     }
 
+    #[cfg(feature = "esp32c2")]
+    {
+        fs::copy("ld/esp32c2_stub.x", out_dir.join("esp32c2_stub.x")).unwrap();
+        println!("cargo:rerun-if-changed=ld/esp32c2_stub.x");
+        println!("cargo:rustc-link-arg=-Tld/esp32c2_stub.x");
+
+        fs::copy("ld/esp32c2_rom.x", out_dir.join("esp32c2_rom.x")).unwrap();
+        println!("cargo:rerun-if-changed=ld/ld/esp32c2_rom.x");
+        println!("cargo:rustc-link-arg=-Tld/esp32c2_rom.x");
+
+        println!("cargo:rustc-link-arg=-Thal-defaults.x");
+    }
+
+    #[cfg(feature = "esp32c3")]
+    {
+        fs::copy("ld/esp32c3_stub.x", out_dir.join("esp32c3_stub.x")).unwrap();
+        println!("cargo:rerun-if-changed=ld/esp32c3_stub.x");
+        println!("cargo:rustc-link-arg=-Tld/esp32c3_stub.x");
+
+        fs::copy("ld/esp32c3_rom.x", out_dir.join("esp32c3_rom.x")).unwrap();
+        println!("cargo:rerun-if-changed=ld/ld/esp32c3_rom.x");
+        println!("cargo:rustc-link-arg=-Tld/esp32c3_rom.x");
+
+        println!("cargo:rustc-link-arg=-Thal-defaults.x");
+    }
+
     #[cfg(feature = "esp32s2")]
     {
         fs::copy("ld/esp32s2_stub.x", out_dir.join("esp32s2_stub.x")).unwrap();
@@ -35,31 +61,5 @@ fn main() {
         fs::copy("ld/esp32s3_rom.x", out_dir.join("esp32s3_rom.x")).unwrap();
         println!("cargo:rerun-if-changed=ld/ld/esp32s3_rom.x");
         println!("cargo:rustc-link-arg=-Tld/esp32s3_rom.x");
-    }
-
-    #[cfg(feature = "esp32c3")]
-    {
-        fs::copy("ld/esp32c3_stub.x", out_dir.join("esp32c3_stub.x")).unwrap();
-        println!("cargo:rerun-if-changed=ld/esp32c3_stub.x");
-        println!("cargo:rustc-link-arg=-Tld/esp32c3_stub.x");
-
-        fs::copy("ld/esp32c3_rom.x", out_dir.join("esp32c3_rom.x")).unwrap();
-        println!("cargo:rerun-if-changed=ld/ld/esp32c3_rom.x");
-        println!("cargo:rustc-link-arg=-Tld/esp32c3_rom.x");
-
-        println!("cargo:rustc-link-arg=-Thal-defaults.x");
-    }
-
-    #[cfg(feature = "esp32c2")]
-    {
-        fs::copy("ld/esp32c2_stub.x", out_dir.join("esp32c2_stub.x")).unwrap();
-        println!("cargo:rerun-if-changed=ld/esp32c2_stub.x");
-        println!("cargo:rustc-link-arg=-Tld/esp32c2_stub.x");
-
-        fs::copy("ld/esp32c2_rom.x", out_dir.join("esp32c2_rom.x")).unwrap();
-        println!("cargo:rerun-if-changed=ld/ld/esp32c2_rom.x");
-        println!("cargo:rustc-link-arg=-Tld/esp32c2_rom.x");
-
-        println!("cargo:rustc-link-arg=-Thal-defaults.x");
     }
 }

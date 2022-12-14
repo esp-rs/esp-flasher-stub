@@ -2,8 +2,14 @@ use heapless::Deque;
 
 use crate::{
     hal::{
-        interrupt, interrupt::CpuInterrupt::*, pac, pac::UART0, prelude::*, serial::Instance,
-        Cpu::*, Serial,
+        interrupt,
+        interrupt::CpuInterrupt::*,
+        pac,
+        pac::UART0,
+        prelude::*,
+        serial::Instance,
+        Cpu::*,
+        Serial,
     },
     protocol::InputIO,
 };
@@ -53,4 +59,3 @@ fn UART0() {
     #[cfg(any(feature = "esp32c3", feature = "esp32c2"))]
     interrupt::clear(ProCpu, Interrupt1);
 }
-
