@@ -45,7 +45,7 @@ jobs:
         chips: [esp32, esp32s2, esp32s3]
         toolchain: [stable, nightly]
     env:
-      RUSTFLAGS: "--cfg target_has_atomic=\"8\" --cfg target_has_atomic=\"16\" --cfg target_has_atomic=\"32\" --cfg target_has_atomic=\"ptr\""
+      RUSTFLAGS: '--cfg target_has_atomic="8" --cfg target_has_atomic="16" --cfg target_has_atomic="32" --cfg target_has_atomic="ptr"'
     steps:
       - uses: actions/checkout@v2
       - uses: esp-rs/xtensa-toolchain@v1.4
@@ -105,3 +105,49 @@ jobs:
           command: clippy
           args: -Zbuild-std=core --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }} -- --no-deps
 
+  # --------------------------------------------------------------------------
+  # MSRV Check
+
+  msrv-riscv:
+    name: Check RISC-V MSRV
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chips: [esp32c2, esp32c3]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: riscv32imc-unknown-none-elf
+          toolchain: "1.60.0"
+          components: rust-src
+          default: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --target=riscv32imc-unknown-none-elf --features ${{ matrix.chips }}
+
+  msrv-xtensa:
+    name: Check Xtensa MSRV
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chips: [esp32, esp32s2, esp32s3]
+    env:
+      RUSTFLAGS: '--cfg target_has_atomic="8" --cfg target_has_atomic="16" --cfg target_has_atomic="32" --cfg target_has_atomic="ptr"'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: esp-rs/xtensa-toolchain@v1.4
+        with:
+          default: true
+          ldproxy: false
+          buildtargets: ${{ matrix.chips }}
+          version: "1.60.0"
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }}
