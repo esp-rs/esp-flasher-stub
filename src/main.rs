@@ -1,23 +1,23 @@
 #![no_main]
 #![no_std]
 
+use esp_backtrace as _;
 use flasher_stub::{
     hal::{
         clock::ClockControl,
-        interrupt, pac,
+        interrupt,
+        pac,
         prelude::*,
         serial::{
             config::{Config, DataBits, Parity, StopBits},
             TxRxPins,
         },
-        Serial, IO,
+        Serial,
+        IO,
     },
     protocol::Stub,
     targets,
 };
-
-use esp_backtrace as _;
-
 #[cfg(target_arch = "riscv32")]
 use riscv_rt::entry;
 #[cfg(target_arch = "xtensa")]
@@ -34,9 +34,13 @@ fn main() -> ! {
     let system = peripherals.DPORT.split();
 
     #[cfg(not(feature = "esp32c2"))]
-    let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); //TODO: configure clocks for all chips
+    let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); // TODO: configure clocks for all chips
     #[cfg(feature = "esp32c2")]
-    let clocks = ClockControl::configure(system.clock_control, flasher_stub::hal::clock::CpuClock::Clock120MHz).freeze();
+    let clocks = ClockControl::configure(
+        system.clock_control,
+        flasher_stub::hal::clock::CpuClock::Clock120MHz,
+    )
+    .freeze();
 
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
     let pins = TxRxPins::new_tx_rx(

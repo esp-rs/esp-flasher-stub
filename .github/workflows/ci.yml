@@ -60,7 +60,24 @@ jobs:
           args: --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }}
 
   # --------------------------------------------------------------------------
-  # Clippy
+  # Formatting & Clippy
+
+  rustfmt:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
 
   clippy-riscv:
     name: Run clippy on RISC-V builds

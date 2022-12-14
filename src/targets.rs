@@ -254,9 +254,9 @@ pub trait EspCommon {
 
     fn init(&self) {
         #[allow(unused_variables, unused_mut)]
-        let mut spiconfig: u32 =  0;
+        let mut spiconfig: u32 = 0;
         // ESP32C2 and newer chips don't have `ets_efuse_get_spiconfig()`
-        // use 0 instead 
+        // use 0 instead
         #[cfg(not(feature = "esp32c2"))]
         let mut spiconfig = unsafe { ets_efuse_get_spiconfig() };
 
@@ -352,8 +352,8 @@ impl EspCommon for Esp32 {
         Err(InvalidCommand)
     }
 
-    // the ROM function has been replaced with patched code so we have to "override" it
-    // https://github.com/espressif/esp-idf/blob/master/components/esp_rom/esp32/ld/esp32.rom.spiflash.ld#L23
+    // the ROM function has been replaced with patched code so we have to "override"
+    // it https://github.com/espressif/esp-idf/blob/master/components/esp_rom/esp32/ld/esp32.rom.spiflash.ld#L23
     fn unlock_flash(&self) -> Result<(), Error> {
         let mut status: u32 = 0;
         const STATUS_QIE_BIT: u32 = 1 << 9;

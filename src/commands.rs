@@ -21,7 +21,7 @@ pub enum Error {
     Err0x34 = 0x34,
     Err0x35 = 0x35,
 
-    EraseErr = 0x36, //TODO: Is it OK to add custom Error?
+    EraseErr = 0x36, // TODO: Is it OK to add custom Error?
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
