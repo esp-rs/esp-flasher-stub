@@ -45,6 +45,7 @@ impl core::fmt::Write for DebugLog {
 
 /// Macro for sending a formatted string to UART1 for debugging
 #[macro_export]
+#[cfg(feature = "dprint")]
 macro_rules! dprint {
     ($s:expr) => {
         #[allow(unused_unsafe)]
@@ -62,8 +63,20 @@ macro_rules! dprint {
     };
 }
 
+#[macro_export]
+#[cfg(not(feature = "dprint"))]
+macro_rules! dprint {
+    ($s:expr) => {
+        
+    };
+    ($($arg:tt)*) => {
+        
+    };
+}
+
 /// Macro for sending a formatted string to UART1 for debugging, with a newline.
 #[macro_export]
+#[cfg(feature = "dprint")]
 macro_rules! dprintln {
     () => {
         #[allow(unused_unsafe)]
@@ -85,6 +98,21 @@ macro_rules! dprintln {
             use core::fmt::Write;
             $crate::dprint::DEBUG_LOG.write_fmt(format_args!(concat!($fmt, "\n"), $($arg)*)).unwrap();
         }
+    };
+}
+
+
+#[macro_export]
+#[cfg(not(feature = "dprint"))]
+macro_rules! dprintln {
+    () => {
+        
+    };
+    ($fmt:expr) => {
+        
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+       
     };
 }
 
