@@ -1,6 +1,6 @@
 # esp-flasher-stub
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/esp-rs/esp-flasher-stub/CI?label=CI&labelColor=1C2C2E&logo=github&style=flat-square)
+[![GitHub Workflow Status](https://github.com/esp-rs/esp-println/actions/workflows/ci.yml/badge.svg)](https://github.com/esp-rs/esp-println/actions/workflows/ci.yml)
 ![MSRV](https://img.shields.io/badge/MSRV-1.60-blue?labelColor=1C2C2E&logo=Rust&style=flat-square)
 
 Rust implementation of flasher stub located in [esptool](https://github.com/espressif/esptool/).
