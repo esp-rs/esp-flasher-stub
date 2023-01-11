@@ -54,6 +54,8 @@ jobs:
           default: true
           ldproxy: false
           buildtargets: ${{ matrix.chips }}
+      - name: Toolchain check
+        run: rustup toolchain list
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
@@ -164,6 +166,8 @@ jobs:
           ldproxy: false
           buildtargets: ${{ matrix.chips }}
           version: "1.60.0"
+      - name: Toolchain check
+        run: rustup toolchain list
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
