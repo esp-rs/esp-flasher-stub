@@ -171,11 +171,11 @@ jobs:
       - name: Toolchain check
         run: |
           rustup toolchain list
-          ls $RUSTUP_HOME/toolchains/esp/
-          ls $RUSTUP_HOME/toolchains/esp/lib/
-          ls $RUSTUP_HOME/toolchains/esp/lib/rustlib/
-          ls $RUSTUP_HOME/toolchains/esp/lib/rustlib/src/
-          ls $RUSTUP_HOME/toolchains/esp/lib/rustlib/src/rust/
+          echo $(ls $RUSTUP_HOME/toolchains/esp/)
+          echo $(ls $RUSTUP_HOME/toolchains/esp/lib/)
+          echo $(ls $RUSTUP_HOME/toolchains/esp/lib/rustlib/)
+          echo $(ls $RUSTUP_HOME/toolchains/esp/lib/rustlib/src/)
+          echo $(ls $RUSTUP_HOME/toolchains/esp/lib/rustlib/src/rust/)
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
