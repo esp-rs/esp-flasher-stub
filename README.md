@@ -52,20 +52,31 @@ In order to run `test_esptool.py` follow steps below:
 git clone https://github.com/espressif/esptool
 ```
 
-- Navigate to `esptool`, checkout version for which patch located in `esp-flasher-stub` directory was created and apply it.
+- Run patched Makefile
 
 ```
-cd esptool
-git checkout 6488ebb
-git am ../../esp-flasher-stub/esptool.patch
-```
-
-- Regenerate `stub_flasher.py` by running patched Makefile and run the tests
+cd esptool/flasher_stub/
+git apply Makefile_patched.patch
+make -C .
+- Run tests
 
 ```
-cd test
-make -C ../flasher_stub/ && python test_esptool.py /dev/ttyUSB0 esp32c3 115200
+cd ../test
+pytest test_esptool.py --port /dev/ttyUSB0 --chip esp32 --baud 115200
 ```
+
+## Debug logs
+
+In order to use `debug logs` you have to build the project with `dprint` feature, for example:
+`cargo build --release --target riscv32imc-unknown-none-elf --features esp32c3,dprint`
+
+and then you can view logs using, for example `screen`:
+`sudo screen /dev/ttyUSB2 115200`
+
+> **Warning**
+>
+> For `ESP32` and `ESP32S2`, please use `baud rate` 57600 instead:
+> `sudo screen /dev/ttyUSB2 57600`
 
 ## License
 
