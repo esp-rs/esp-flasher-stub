@@ -2,19 +2,13 @@
 #![no_std]
 
 use esp_backtrace as _;
+#[cfg(feature = "dprint")]
+use flasher_stub::hal::serial::{
+    config::{Config, DataBits, Parity, StopBits},
+    TxRxPins,
+};
 use flasher_stub::{
-    hal::{
-        clock::ClockControl,
-        interrupt,
-        pac,
-        prelude::*,
-        serial::{
-            config::{Config, DataBits, Parity, StopBits},
-            TxRxPins,
-        },
-        Serial,
-        IO,
-    },
+    hal::{clock::ClockControl, interrupt, pac, prelude::*, Serial, IO},
     protocol::Stub,
     targets,
 };
@@ -33,29 +27,44 @@ fn main() -> ! {
     #[cfg(feature = "esp32")]
     let system = peripherals.DPORT.split();
 
-    #[cfg(not(feature = "esp32c2"))]
-    let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); // TODO: configure clocks for all chips
+    #[cfg(any(feature = "esp32", feature = "esp32s2"))]
+    #[allow(unused)]
+    let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); // TODO: ESP32 and S2 only works with `boot_defauls` for some reason
+
     #[cfg(feature = "esp32c2")]
+    #[allow(unused)]
     let clocks = ClockControl::configure(
         system.clock_control,
         flasher_stub::hal::clock::CpuClock::Clock120MHz,
     )
     .freeze();
 
+    #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+    #[allow(unused)]
+    let clocks = ClockControl::configure(
+        system.clock_control,
+        flasher_stub::hal::clock::CpuClock::Clock160MHz,
+    )
+    .freeze();
+
+    #[allow(unused)]
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
-    let pins = TxRxPins::new_tx_rx(
-        io.pins.gpio2.into_push_pull_output(),
-        io.pins.gpio0.into_floating_input(),
+
+    #[cfg(feature = "dprint")]
+    let _ = Serial::new_with_config(
+        peripherals.UART1,
+        Some(Config {
+            baudrate: 115200,
+            data_bits: DataBits::DataBits8,
+            parity: Parity::ParityNone,
+            stop_bits: StopBits::STOP1,
+        }),
+        Some(TxRxPins::new_tx_rx(
+            io.pins.gpio2.into_push_pull_output(),
+            io.pins.gpio0.into_floating_input(),
+        )),
+        &clocks,
     );
-
-    let config = Config {
-        baudrate: 115200,
-        data_bits: DataBits::DataBits8,
-        parity: Parity::ParityNone,
-        stop_bits: StopBits::STOP1,
-    };
-
-    let _ = Serial::new_with_config(peripherals.UART1, Some(config), Some(pins), &clocks);
 
     let mut serial = Serial::new(peripherals.UART0);
 

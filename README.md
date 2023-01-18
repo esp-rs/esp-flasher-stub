@@ -58,6 +58,8 @@ git clone https://github.com/espressif/esptool
 cd esptool/flasher_stub/
 git apply Makefile_patched.patch
 make -C .
+```
+
 - Run tests
 
 ```
@@ -67,7 +69,7 @@ pytest test_esptool.py --port /dev/ttyUSB0 --chip esp32 --baud 115200
 
 ## Debug logs
 
-In order to use `debug logs` you have to build the project with `dprint` feature, for example:
+In order to use `debug logs` you have to build the project with `dprint` feature, for example:\
 `cargo build --release --target riscv32imc-unknown-none-elf --features esp32c3,dprint`
 
 and then you can view logs using, for example `screen`:

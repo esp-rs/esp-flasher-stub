@@ -66,12 +66,8 @@ macro_rules! dprint {
 #[macro_export]
 #[cfg(not(feature = "dprint"))]
 macro_rules! dprint {
-    ($s:expr) => {
-        
-    };
-    ($($arg:tt)*) => {
-        
-    };
+    ($s:expr) => {};
+    ($($arg:tt)*) => {};
 }
 
 /// Macro for sending a formatted string to UART1 for debugging, with a newline.
@@ -101,19 +97,12 @@ macro_rules! dprintln {
     };
 }
 
-
 #[macro_export]
 #[cfg(not(feature = "dprint"))]
 macro_rules! dprintln {
-    () => {
-        
-    };
-    ($fmt:expr) => {
-        
-    };
-    ($fmt:expr, $($arg:tt)*) => {
-       
-    };
+    () => {};
+    ($fmt:expr) => {};
+    ($fmt:expr, $($arg:tt)*) => {};
 }
 
 /// Macro for flushing the UART1 TX buffer
