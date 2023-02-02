@@ -25,13 +25,11 @@ jobs:
         toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses:dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           target: riscv32imc-unknown-none-elf
           toolchain: ${{ matrix.toolchain }}
           components: rust-src
-          default: true
       - uses: actions-rs/cargo@v1
         with:
           command: check
@@ -68,11 +66,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses:dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: nightly
-          override: true
           components: rustfmt
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
@@ -90,13 +86,11 @@ jobs:
         toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses:dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           target: riscv32imc-unknown-none-elf
           toolchain: ${{ matrix.toolchain }}
-          components: clippy, rust-src
-          default: true
+          components: clippy
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
@@ -135,13 +129,11 @@ jobs:
         chips: [esp32c2, esp32c3]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses:dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           target: riscv32imc-unknown-none-elf
           toolchain: "1.60.0"
           components: rust-src
-          default: true
       - uses: actions-rs/cargo@v1
         with:
           command: check
