@@ -22,20 +22,15 @@ jobs:
       fail-fast: false
       matrix:
         chips: [esp32c3, esp32c2]
-        toolchain: [stable, nightly]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           target: riscv32imc-unknown-none-elf
-          toolchain: ${{ matrix.toolchain }}
+          toolchain: nightly
           components: rust-src
-          default: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --target=riscv32imc-unknown-none-elf --features ${{ matrix.chips }}
+      - name: cargo check
+        run: cargo check --target=riscv32imc-unknown-none-elf --features ${{ matrix.chips }}
 
   check-xtensa:
     name: Check Xtensa
@@ -44,21 +39,18 @@ jobs:
       fail-fast: false
       matrix:
         chips: [esp32, esp32s2, esp32s3]
-        toolchain: [stable, nightly]
     env:
       RUSTFLAGS: '--cfg target_has_atomic="8" --cfg target_has_atomic="16" --cfg target_has_atomic="32" --cfg target_has_atomic="ptr"'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: esp-rs/xtensa-toolchain@v1.5
         with:
           default: true
           ldproxy: false
           buildtargets: ${{ matrix.chips }}
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }}
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo check
+        run: cargo check --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }}
 
   # --------------------------------------------------------------------------
   # Formatting & Clippy
@@ -67,18 +59,14 @@ jobs:
     name: Check formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: nightly
-          override: true
           components: rustfmt
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
 
   clippy-riscv:
     name: Run clippy on RISC-V builds
@@ -87,21 +75,16 @@ jobs:
       fail-fast: false
       matrix:
         chips: [esp32c3, esp32c2]
-        toolchain: [stable, nightly]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           target: riscv32imc-unknown-none-elf
-          toolchain: ${{ matrix.toolchain }}
-          components: clippy, rust-src
-          default: true
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --features ${{ matrix.chips }} --target riscv32imc-unknown-none-elf -- --no-deps
+          toolchain: stable
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo clippy
+        run: cargo clippy --features ${{ matrix.chips }} --target riscv32imc-unknown-none-elf -- --no-deps
 
   clippy-xtensa:
     name: Run clippy on Xtensa builds
@@ -111,17 +94,15 @@ jobs:
       matrix:
         chips: [esp32, esp32s2, esp32s3]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: esp-rs/xtensa-toolchain@v1.5
         with:
           default: true
           ldproxy: false
           buildtargets: ${{ matrix.chips }}
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -Zbuild-std=core --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }} -- --no-deps
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo clippy
+        run: cargo clippy -Zbuild-std=core --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }} -- --no-deps
 
   # --------------------------------------------------------------------------
   # MSRV Check
@@ -134,18 +115,14 @@ jobs:
       matrix:
         chips: [esp32c2, esp32c3]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           target: riscv32imc-unknown-none-elf
           toolchain: "1.60.0"
           components: rust-src
-          default: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --target=riscv32imc-unknown-none-elf --features ${{ matrix.chips }}
+      - name: cargo check
+        run: cargo check --target=riscv32imc-unknown-none-elf --features ${{ matrix.chips }}
 
   msrv-xtensa:
     name: Check Xtensa MSRV
@@ -157,15 +134,13 @@ jobs:
     env:
       RUSTFLAGS: '--cfg target_has_atomic="8" --cfg target_has_atomic="16" --cfg target_has_atomic="32" --cfg target_has_atomic="ptr"'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: esp-rs/xtensa-toolchain@v1.5
         with:
           default: true
           ldproxy: false
           buildtargets: ${{ matrix.chips }}
           version: "1.60.0"
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }}
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo check
+        run: cargo check --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }}
