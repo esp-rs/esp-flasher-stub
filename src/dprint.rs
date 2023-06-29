@@ -4,7 +4,7 @@
 //! This is unsafe! It is asynchronous with normal UART1 usage and
 //! interrupts are not disabled.
 
-use crate::hal::{pac::UART1, prelude::nb};
+use crate::hal::{peripherals::UART1, prelude::nb};
 
 pub static mut DEBUG_LOG: DebugLog = DebugLog;
 

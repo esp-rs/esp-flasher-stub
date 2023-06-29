@@ -4,12 +4,11 @@ use crate::{
     hal::{
         interrupt,
         interrupt::CpuInterrupt::*,
-        pac,
-        pac::UART0,
+        peripherals::UART0,
         prelude::*,
-        serial::Instance,
+        uart::Instance,
         Cpu::*,
-        Serial,
+        Uart,
     },
     protocol::InputIO,
 };
@@ -18,7 +17,7 @@ const RX_QUEUE_SIZE: usize = crate::targets::MAX_WRITE_BLOCK + 0x400;
 
 static mut RX_QUEUE: Deque<u8, RX_QUEUE_SIZE> = Deque::new();
 
-impl<T: Instance> InputIO for Serial<T> {
+impl<T: Instance> InputIO for Uart<'_, T> {
     fn recv(&mut self) -> u8 {
         unsafe { while critical_section::with(|_| RX_QUEUE.is_empty()) {} }
         unsafe { critical_section::with(|_| RX_QUEUE.pop_front().unwrap()) }
@@ -39,11 +38,8 @@ fn uart_isr() {
             0
         };
 
-        let data = unsafe {
-            let data = (uart.fifo.as_ptr() as *mut u8).offset(offset)
-                as *mut crate::hal::pac::generic::Reg<crate::hal::pac::uart0::fifo::FIFO_SPEC>;
-            (*data).read().rxfifo_rd_byte().bits()
-        };
+        // read a bye from the fifo
+        let data = unsafe { (uart.fifo.as_ptr() as *mut u8).offset(offset).read() };
 
         unsafe { RX_QUEUE.push_back(data).unwrap() };
     }
