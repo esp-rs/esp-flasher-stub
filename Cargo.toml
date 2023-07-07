@@ -46,3 +46,6 @@ opt-level = "s" # temporary because of https://github.com/llvm/llvm-project/issu
 codegen-units = 1
 lto = true
 panic = "abort"
+
+[workspace]
+members = ["xtask"]
