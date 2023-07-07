@@ -11,53 +11,117 @@ env:
   CARGO_TERM_COLOR: always
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+# Cancel any currently running workflows from the same PR, branch, or
+# tag when a new workflow is triggered.
+#
+# https://stackoverflow.com/a/66336834
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+
 jobs:
   # --------------------------------------------------------------------------
   # Cargo check
 
   check-riscv:
-    name: Check RISC-V
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
-        chips: [esp32c3, esp32c2]
+        build:
+          [
+            { chip: "esp32c2", target: "riscv32imc-unknown-none-elf" },
+            { chip: "esp32c3", target: "riscv32imc-unknown-none-elf" },
+          ]
+
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@v1
         with:
-          target: riscv32imc-unknown-none-elf
+          target: ${{ matrix.build.target }}
           toolchain: nightly
           components: rust-src
+      - uses: Swatinem/rust-cache@v2
       - name: cargo check
-        run: cargo check --target=riscv32imc-unknown-none-elf --features ${{ matrix.chips }}
+        run: cargo check -Zbuild-std=core --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }}
 
   check-xtensa:
-    name: Check Xtensa
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
-        chips: [esp32, esp32s2, esp32s3]
-    env:
-      RUSTFLAGS: '--cfg target_has_atomic="8" --cfg target_has_atomic="16" --cfg target_has_atomic="32" --cfg target_has_atomic="ptr"'
+        build:
+          [
+            { chip: "esp32", target: "xtensa-esp32-none-elf" },
+            { chip: "esp32s2", target: "xtensa-esp32s2-none-elf" },
+            { chip: "esp32s3", target: "xtensa-esp32s3-none-elf" },
+          ]
+
     steps:
       - uses: actions/checkout@v3
       - uses: esp-rs/xtensa-toolchain@v1.5
         with:
           default: true
           ldproxy: false
-          buildtargets: ${{ matrix.chips }}
+          buildtargets: ${{ matrix.build.chip }}
       - uses: Swatinem/rust-cache@v2
       - name: cargo check
-        run: cargo check --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }}
+        run: cargo check -Zbuild-std=core --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }}
 
   # --------------------------------------------------------------------------
   # Formatting & Clippy
 
-  rustfmt:
-    name: Check formatting
+  clippy-riscv:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        build:
+          [
+            { chip: "esp32c2", target: "riscv32imc-unknown-none-elf" },
+            { chip: "esp32c3", target: "riscv32imc-unknown-none-elf" },
+          ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          target: ${{ matrix.build.target }}
+          toolchain: stable
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo clippy
+        run: cargo clippy --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }} -- --no-deps
+
+  clippy-xtensa:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          [
+            { chip: "esp32", target: "xtensa-esp32-none-elf" },
+            { chip: "esp32s2", target: "xtensa-esp32s2-none-elf" },
+            { chip: "esp32s3", target: "xtensa-esp32s3-none-elf" },
+          ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: esp-rs/xtensa-toolchain@v1.5
+        with:
+          default: true
+          ldproxy: false
+          buildtargets: ${{ matrix.build.chip }}
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo clippy
+        run: cargo clippy -Zbuild-std=core --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }} -- --no-deps
+
+  rustfmt:
+    runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@v1
@@ -68,79 +132,52 @@ jobs:
       - name: cargo fmt
         run: cargo fmt --all -- --check
 
-  clippy-riscv:
-    name: Run clippy on RISC-V builds
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        chips: [esp32c3, esp32c2]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@v1
-        with:
-          target: riscv32imc-unknown-none-elf
-          toolchain: stable
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - name: cargo clippy
-        run: cargo clippy --features ${{ matrix.chips }} --target riscv32imc-unknown-none-elf -- --no-deps
-
-  clippy-xtensa:
-    name: Run clippy on Xtensa builds
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        chips: [esp32, esp32s2, esp32s3]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: esp-rs/xtensa-toolchain@v1.5
-        with:
-          default: true
-          ldproxy: false
-          buildtargets: ${{ matrix.chips }}
-      - uses: Swatinem/rust-cache@v2
-      - name: cargo clippy
-        run: cargo clippy -Zbuild-std=core --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }} -- --no-deps
-
   # --------------------------------------------------------------------------
   # MSRV Check
 
   msrv-riscv:
-    name: Check RISC-V MSRV
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
-        chips: [esp32c2, esp32c3]
+        build:
+          [
+            { chip: "esp32c2", target: "riscv32imc-unknown-none-elf" },
+            { chip: "esp32c3", target: "riscv32imc-unknown-none-elf" },
+          ]
+
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@v1
         with:
-          target: riscv32imc-unknown-none-elf
+          target: ${{ matrix.build.target }}
           toolchain: "1.60.0"
           components: rust-src
       - name: cargo check
-        run: cargo check --target=riscv32imc-unknown-none-elf --features ${{ matrix.chips }}
+        run: cargo check --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }}
 
   msrv-xtensa:
-    name: Check Xtensa MSRV
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
-        chips: [esp32, esp32s2, esp32s3]
-    env:
-      RUSTFLAGS: '--cfg target_has_atomic="8" --cfg target_has_atomic="16" --cfg target_has_atomic="32" --cfg target_has_atomic="ptr"'
+        build:
+          [
+            { chip: "esp32", target: "xtensa-esp32-none-elf" },
+            { chip: "esp32s2", target: "xtensa-esp32s2-none-elf" },
+            { chip: "esp32s3", target: "xtensa-esp32s3-none-elf" },
+          ]
+
     steps:
       - uses: actions/checkout@v3
       - uses: esp-rs/xtensa-toolchain@v1.5
         with:
           default: true
           ldproxy: false
-          buildtargets: ${{ matrix.chips }}
+          buildtargets: ${{ matrix.build.chip }}
           version: "1.60.0"
       - uses: Swatinem/rust-cache@v2
       - name: cargo check
-        run: cargo check --target=xtensa-${{ matrix.chips }}-none-elf --features ${{ matrix.chips }}
+        run: cargo check -Zbuild-std=core --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }}
