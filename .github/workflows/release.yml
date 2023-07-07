@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+env:
+  CARGO_TERM_COLOR: always
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Release (RISC-V)
+
+  release-riscv:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          [
+            { chip: "esp32c2", target: "riscv32imc-unknown-none-elf" },
+            { chip: "esp32c3", target: "riscv32imc-unknown-none-elf" },
+          ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          target: ${{ matrix.build.target }}
+          toolchain: nightly
+          components: rust-src
+      - uses: Swatinem/rust-cache@v2
+
+      - name: build & wrap (${{ matrix.build.chip }})
+        run: cargo xtask wrap ${{ matrix.build.chip }}
+      - uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ env.GITHUB_TOKEN }}
+          file: "${{ matrix.build.chip }}.json"
+          tag: ${{ github.ref }}
+
+  # --------------------------------------------------------------------------
+  # Release (Xtensa)
+
+  release-xtensa:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          [
+            { chip: "esp32", target: "xtensa-esp32-none-elf" },
+            { chip: "esp32s2", target: "xtensa-esp32s2-none-elf" },
+            { chip: "esp32s3", target: "xtensa-esp32s3-none-elf" },
+          ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: esp-rs/xtensa-toolchain@v1.5
+        with:
+          default: true
+          ldproxy: false
+          buildtargets: ${{ matrix.build.chip }}
+      - uses: Swatinem/rust-cache@v2
+
+      - name: build & wrap (${{ matrix.build.chip }})
+        run: cargo xtask wrap ${{ matrix.build.chip }}
+      - uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ env.GITHUB_TOKEN }}
+          file: "${{ matrix.build.chip }}.json"
+          tag: ${{ github.ref }}
