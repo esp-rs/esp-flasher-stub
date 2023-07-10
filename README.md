@@ -2,83 +2,86 @@
 
 [![GitHub Workflow Status](https://github.com/esp-rs/esp-println/actions/workflows/ci.yml/badge.svg)](https://github.com/esp-rs/esp-println/actions/workflows/ci.yml)
 ![MSRV](https://img.shields.io/badge/MSRV-1.60-blue?labelColor=1C2C2E&logo=Rust&style=flat-square)
+[![Matrix](https://img.shields.io/matrix/esp-rs:matrix.org?label=join%20matrix&color=BEC5C9&labelColor=1C2C2E&logo=matrix&style=flat-square)](https://matrix.to/#/#esp-rs:matrix.org)
 
 Rust implementation of flasher stub located in [esptool](https://github.com/espressif/esptool/).
 
-Supports the ESP32, ESP32-C2/C3, and ESP32-S2/S3. Currently `UART` is the only supported transport mode, however support for more is planned.
+Supports the ESP32, ESP32-C2/C3, and ESP32-S2/S3. Currently `UART` is the only supported transport mode, however support for other modes is planned.
 
 ## Quickstart
 
-In order to build the flasher stub, you must provide a feature to `cargo` selecting the device, and additionally specify the target.
+To ease the building process we have included a `build` subcommand in the `xtask` package which will apply all the appropriate build configuration for one or more devices:
 
-#### ESP32
-
-```
- cargo +esp build --features=esp32 --target=xtensa-esp32-none-elf --release
-```
-
-#### ESP32-C2
-
-```
- cargo build --features=esp32c2 --target=riscv32imc-unknown-none-elf --release
+```bash
+cargo xtask build esp32
+cargo xtask build esp32c2 esp32c3
 ```
 
-#### ESP32-C3
+In order to build the flasher stub manually, you must specify the appropriate toolchain, provide a feature to `cargo` selecting the device, and additionally specify the target:
 
-```
- cargo build --features=esp32c3 --target=riscv32imc-unknown-none-elf --release
+```bash
+# ESP32
+cargo +esp build --release --features=esp32 --target=xtensa-esp32-none-elf
+
+# ESP32-C2
+cargo +nightly build --release --features=esp32c2 --target=riscv32imc-unknown-none-elf
+
+# ESP32-C3
+cargo +nightly build --release --features=esp32c3 --target=riscv32imc-unknown-none-elf
+
+# ESP32-S2
+cargo +esp build --release --features=esp32s2 --target=xtensa-esp32s2-none-elf
+
+# ESP32-S3
+cargo +esp build --release --features=esp32s3 --target=xtensa-esp32s3-none-elf
 ```
 
-#### ESP32-S2
+In order to generate the JSON stub files for one or more devices, you can again use the `xtask` package:
 
-```
- cargo +esp build --features=esp32s2 --target=xtensa-esp32s2-none-elf --release
-```
-
-#### ESP32-S3
-
-```
- cargo +esp build --features=esp32s3 --target=xtensa-esp32s3-none-elf --release
+```bash
+cargo xtask wrap esp32c3
+cargo xtask wrap esp32 esp32s2 esp32s3
 ```
 
 ## Testing
 
 In order to run `test_esptool.py` follow steps below:
 
-- Build `esp-flasher-stub` as described in the build section above.
+- Build `esp-flasher-stub` as described in the section above.
 - Clone `esptool` to the same directory where `esp-flasher-stub` resides.
-
-```
-git clone https://github.com/espressif/esptool
-```
-
 - Run patched Makefile
+- Run tests
 
-```
+```bash
+git clone https://github.com/espressif/esptool
 cd esptool/flasher_stub/
 git apply Makefile_patched.patch
 make -C .
-```
-
-- Run tests
-
-```
 cd ../test
 pytest test_esptool.py --port /dev/ttyUSB0 --chip esp32 --baud 115200
 ```
 
 ## Debug logs
 
-In order to use `debug logs` you have to build the project with `dprint` feature, for example:\
-`cargo build --release --target riscv32imc-unknown-none-elf --features esp32c3,dprint`
+In order to use debug logs you have to build the project with `dprint` feature, for example:
 
-and then you can view logs using, for example `screen`:
-`sudo screen /dev/ttyUSB2 115200`
+```bash
+cargo build --release --target=riscv32imc-unknown-none-elf --features=esp32c3,dprint
+```
+
+Then you can view logs using, for example `screen`:
+
+```bash
+screen /dev/ttyUSB2 115200
+```
 
 > **Warning**
 >
-> For `ESP32` and `ESP32S2`, please use `baud rate` 57600 instead:
-> `sudo screen /dev/ttyUSB2 57600`
+> For ESP32 and ESP32-S2, please use a baud rate of 57,600 instead:
+>
+> ```bash
+> screen /dev/ttyUSB2 57600
+> ```
 
 ## License
 
