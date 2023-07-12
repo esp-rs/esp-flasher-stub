@@ -142,6 +142,8 @@ fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
 }
 
 fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
+    use base64::engine::{general_purpose, Engine};
+
     let artifact_path = build(workspace, chip)?;
 
     let elf_data = fs::read(artifact_path)?;
@@ -156,9 +158,11 @@ fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
     if text.len() % 4 != 0 {
         text.extend(iter::repeat('\0' as u8).take(4 - (text.len() % 4)));
     }
+    let text = general_purpose::STANDARD.encode(&text);
 
     let data_section = elf.find_section_by_name(".data").unwrap();
     let data = data_section.raw_data(&elf).to_vec();
+    let data = general_purpose::STANDARD.encode(&data);
     let data_start = data_section.address();
 
     let stub = json!({
