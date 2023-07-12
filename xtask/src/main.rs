@@ -175,6 +175,11 @@ fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
 
     let stub_file = workspace.join(format!("{chip}.json"));
     let contents = serde_json::to_string(&stub)?;
+    fs::write(stub_file, &contents)?;
+
+    let stub_file = workspace.join(format!("{chip}.toml"));
+    let stub: toml::Value = serde_json::from_str(&contents)?;
+    let contents = toml::to_string(&stub)?;
     fs::write(stub_file, contents)?;
 
     Ok(())

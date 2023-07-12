@@ -14,5 +14,9 @@ target/
 .DS_Store
 *.swp
 
-# Ignore generated JSON stub files
+# Ignore generated JSON & toml stub files
 *.json
+*.toml
+# Allow these toml files though
+!Cargo.toml
+!rustfmt.toml
