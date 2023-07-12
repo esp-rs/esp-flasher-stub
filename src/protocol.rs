@@ -163,7 +163,7 @@ impl<'a> Stub<'a> {
 
         self.in_flash_mode = false;
 
-        if cmd.run_user_code == 1 {
+        if cmd.reboot {
             self.send_response(response);
             self.target.delay_us(10_000);
             self.target.soft_reset();

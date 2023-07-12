@@ -1,7 +1,6 @@
 #![no_main]
 #![no_std]
 
-use esp_backtrace as _;
 #[cfg(feature = "dprint")]
 use flasher_stub::hal::serial::{
     config::{Config, DataBits, Parity, StopBits},
@@ -81,4 +80,10 @@ fn main() -> ! {
         let data = stub.read_command(&mut buffer);
         stub.process_command(data);
     }
+}
+
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    flasher_stub::dprintln!("STUB Panic: {:?}", _info);
+    loop {}
 }

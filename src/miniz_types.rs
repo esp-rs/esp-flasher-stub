@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 const TINFL_MAX_HUFF_TABLES: usize = 3;
 const TINFL_MAX_HUFF_SYMBOLS_0: usize = 288;
 const TINFL_MAX_HUFF_SYMBOLS_1: usize = 32;

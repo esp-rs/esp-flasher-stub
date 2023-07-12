@@ -89,7 +89,7 @@ pub struct DataCommand {
 #[repr(C, packed(1))]
 pub struct EndFlashCommand {
     pub base: CommandBase,
-    pub run_user_code: u32,
+    pub reboot: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -221,6 +221,7 @@ impl<'a> Response<'a> {
     }
 
     pub fn error(&mut self, error: Error) {
+        crate::dprintln!("Error: {:?}", error);
         self.status = 1;
         self.error = error as u8;
     }

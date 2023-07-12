@@ -403,17 +403,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "esp-backtrace"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1834d20d58dc6baaf063924cb3ffa0b7f6388a593bae310c9f228c4bd47f0dde"
-dependencies = [
- "esp-println",
- "riscv 0.10.0",
- "xtensa-lx-rt",
-]
-
-[[package]]
 name = "esp-hal-common"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -454,12 +443,6 @@ dependencies = [
  "quote",
  "syn 1.0.107",
 ]
-
-[[package]]
-name = "esp-println"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adcfe5d532cf2029b11996cab6b4af948f41c24b131c76422115634711549aaa"
 
 [[package]]
 name = "esp-synopsys-usb-otg"
@@ -604,7 +587,6 @@ version = "0.1.0"
 dependencies = [
  "assert2",
  "critical-section",
- "esp-backtrace",
  "esp32-hal",
  "esp32c2-hal",
  "esp32c3-hal",

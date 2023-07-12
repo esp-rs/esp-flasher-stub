@@ -9,7 +9,6 @@ exclude = [".github/", "esptool.patch"]
 
 [dependencies]
 critical-section  = "1.1.1"
-esp-backtrace = { version = "0.4.0", optional = true, features = ["exception-handler", "panic-handler", "print-uart"] }
 esp32-hal = { version = "0.7.0", optional = true }
 esp32c2-hal = { version = "0.2.0", optional = true }
 esp32c3-hal = { version = "0.4.0", optional = true }
@@ -33,11 +32,11 @@ mockall = "0.11.3"
 mockall_double = "0.3.0"
 
 [features]
-esp32 = ["esp32-hal", "esp-backtrace/esp32"]
-esp32s2 = ["esp32s2-hal", "esp-backtrace/esp32s2"]
-esp32s3 = ["esp32s3-hal", "esp-backtrace/esp32s3"]
-esp32c3 = ["esp32c3-hal", "esp-backtrace/esp32c3"]
-esp32c2 = ["esp32c2-hal", "esp-backtrace/esp32c2"]
+esp32 = ["esp32-hal"] 
+esp32s2 = ["esp32s2-hal"]
+esp32s3 = ["esp32s3-hal"]
+esp32c3 = ["esp32c3-hal"]
+esp32c2 = ["esp32c2-hal"]
 dprint = []
 
 [profile.release]
