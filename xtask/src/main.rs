@@ -147,7 +147,15 @@ fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
 
     // ordering here matters! should be in order of placement in RAM
     // note that sections that don't exists, or contain no data are ignored
-    let text_sections = [".text_init", ".text", ".trap", ".rwtext"];
+    let text_sections = [
+        ".vectors",
+        ".text_init",
+        ".text",
+        ".trap",
+        ".init",
+        ".fini",
+        ".rwtext",
+    ];
     let data_sections = [".rodata", ".data"];
 
     let artifact_path = build(workspace, chip)?;
@@ -218,7 +226,12 @@ fn concat_sections(elf: &ElfFile, list: &[&str]) -> (u64, Vec<u8>) {
         }
         let mut data_data = section.raw_data(&elf).to_vec();
         let padding = if let Some(next) = next_t {
-            assert!(section.address() < next.address(), "Sections should be listed in ascending order");
+            assert!(
+                section.address() < next.address(),
+                "Sections should be listed in ascending order. Current: 0x{:08X}, next: 0x{:08X}.",
+                section.address(),
+                next.address()
+            );
             let end = section.address() as usize + data_data.len();
             let padding = next.address() as usize - end;
             log::debug!("Size of padding to next section: {}", padding);

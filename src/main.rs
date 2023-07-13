@@ -7,7 +7,7 @@ use flasher_stub::hal::uart::{
     TxRxPins,
 };
 use flasher_stub::{
-    hal::{clock::ClockControl, interrupt, prelude::*, Uart, IO, peripherals},
+    hal::{clock::ClockControl, interrupt, peripherals, prelude::*, Uart, IO},
     protocol::Stub,
     targets,
 };
@@ -34,11 +34,19 @@ fn main() -> ! {
     )
     .freeze();
 
-    #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+    #[cfg(feature = "esp32c3")]
     #[allow(unused)]
     let clocks = ClockControl::configure(
         system.clock_control,
         flasher_stub::hal::clock::CpuClock::Clock160MHz,
+    )
+    .freeze();
+
+    #[cfg(feature = "esp32s3")]
+    #[allow(unused)]
+    let clocks = ClockControl::configure(
+        system.clock_control,
+        flasher_stub::hal::clock::CpuClock::Clock240MHz,
     )
     .freeze();
 
@@ -59,22 +67,31 @@ fn main() -> ! {
             io.pins.gpio0.into_floating_input(),
         )),
         &clocks,
-        &mut system.peripheral_clock_control
+        &mut system.peripheral_clock_control,
     );
+
+    flasher_stub::dprintln!("Stub init!");
 
     let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
 
     // Must be called after Serial::new, as it disables interrupts
     serial.listen_rx_fifo_full();
 
-    interrupt::enable(peripherals::Interrupt::UART0, interrupt::Priority::Priority1).unwrap();
+    interrupt::enable(
+        peripherals::Interrupt::UART0,
+        interrupt::Priority::Priority1,
+    )
+    .unwrap();
 
     let mut stub = Stub::new(&mut serial);
+    flasher_stub::dprintln!("Stub sending greeting!");
     stub.send_greeting();
 
     let mut buffer: [u8; MSG_BUFFER_SIZE] = [0; MSG_BUFFER_SIZE];
     loop {
+        flasher_stub::dprintln!("Waiting for command");
         let data = stub.read_command(&mut buffer);
+        flasher_stub::dprintln!("Processing command");
         stub.process_command(data);
     }
 }

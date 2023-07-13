@@ -435,14 +435,12 @@ dependencies = [
  "critical-section",
  "embedded-dma",
  "embedded-hal",
- "esp-hal-procmacros",
- "esp-riscv-rt",
+ "esp-hal-procmacros 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "esp-riscv-rt 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "esp-synopsys-usb-otg",
  "esp32",
  "esp32c2",
- "esp32c3",
  "esp32s2",
- "esp32s3",
  "fugit",
  "lock_api",
  "log",
@@ -451,6 +449,36 @@ dependencies = [
  "riscv-atomic-emulation-trap",
  "serde",
  "strum 0.24.1",
+ "usb-device",
+ "void",
+ "xtensa-lx",
+ "xtensa-lx-rt",
+]
+
+[[package]]
+name = "esp-hal-common"
+version = "0.10.0"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
+dependencies = [
+ "basic-toml",
+ "bitflags 2.3.3",
+ "cfg-if",
+ "critical-section",
+ "embedded-dma",
+ "embedded-hal",
+ "esp-hal-procmacros 0.6.0 (git+https://github.com/MabezDev/esp-hal?branch=segment-alias)",
+ "esp-riscv-rt 0.3.0 (git+https://github.com/MabezDev/esp-hal?branch=segment-alias)",
+ "esp-synopsys-usb-otg",
+ "esp32c3",
+ "esp32s3",
+ "fugit",
+ "lock_api",
+ "log",
+ "nb 1.1.0",
+ "paste",
+ "riscv-atomic-emulation-trap",
+ "serde",
+ "strum 0.25.0",
  "usb-device",
  "void",
  "xtensa-lx",
@@ -472,10 +500,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "esp-hal-procmacros"
+version = "0.6.0"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
+dependencies = [
+ "darling",
+ "proc-macro-crate",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.23",
+]
+
+[[package]]
 name = "esp-riscv-rt"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e523ed9a26c604d4469dff4777484b14f977e864ba041f634ade1d7f47ef4151"
+dependencies = [
+ "riscv",
+ "riscv-rt-macros",
+]
+
+[[package]]
+name = "esp-riscv-rt"
+version = "0.3.0"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
 dependencies = [
  "riscv",
  "riscv-rt-macros",
@@ -511,7 +561,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "769fa34985651980dd337a5784285a24cd7f122700f3d5c4a027d4401b028aa2"
 dependencies = [
  "embedded-hal",
- "esp-hal-common",
+ "esp-hal-common 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -531,7 +581,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d535b0a5adca6b0c1718c4a0be4cf072cf520aa4216306d69638fd908992c32"
 dependencies = [
  "embedded-hal",
- "esp-hal-common",
+ "esp-hal-common 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -547,12 +597,11 @@ dependencies = [
 [[package]]
 name = "esp32c3-hal"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8efd438e920ef0b16be9a4792a430c3ddfa4e206011df4a6cb5f8e646b7f89d"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
 dependencies = [
  "cfg-if",
  "embedded-hal",
- "esp-hal-common",
+ "esp-hal-common 0.10.0 (git+https://github.com/MabezDev/esp-hal?branch=segment-alias)",
 ]
 
 [[package]]
@@ -573,7 +622,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89f909010f72acc802c9c8d09cede3399a6650b3980998745cdefce6a527620"
 dependencies = [
  "embedded-hal",
- "esp-hal-common",
+ "esp-hal-common 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "xtensa-atomic-emulation-trap",
 ]
 
@@ -591,12 +640,11 @@ dependencies = [
 [[package]]
 name = "esp32s3-hal"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f9e7627629fb361e71e95a9b57d99b213fe58fc4f3bcfaf0cd9fb395f4444b6"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
 dependencies = [
  "bare-metal",
  "embedded-hal",
- "esp-hal-common",
+ "esp-hal-common 0.10.0 (git+https://github.com/MabezDev/esp-hal?branch=segment-alias)",
 ]
 
 [[package]]

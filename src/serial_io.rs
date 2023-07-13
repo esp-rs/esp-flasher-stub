@@ -1,15 +1,7 @@
 use heapless::Deque;
 
 use crate::{
-    hal::{
-        interrupt,
-        interrupt::CpuInterrupt::*,
-        peripherals::UART0,
-        prelude::*,
-        uart::Instance,
-        Cpu::*,
-        Uart,
-    },
+    hal::{peripherals::UART0, prelude::*, uart::Instance, Uart},
     protocol::InputIO,
 };
 
@@ -28,7 +20,8 @@ impl<T: Instance> InputIO for Uart<'_, T> {
     }
 }
 
-fn uart_isr() {
+#[interrupt]
+fn UART0() {
     let uart = unsafe { &*UART0::ptr() };
 
     while uart.status.read().rxfifo_cnt().bits() > 0 {
@@ -38,20 +31,13 @@ fn uart_isr() {
             0
         };
 
-        // read a bye from the fifo
-        let data = unsafe { (uart.fifo.as_ptr() as *mut u8).offset(offset).read() };
-
+        // read a byte from the fifo
+        // the read _must_ be a word read so the hardware correctly detects the read and
+        // pops the byte from the fifo cast the result to a u8, as only the
+        // first byte contains the data
+        let data = unsafe { (uart.fifo.as_ptr() as *mut u32).offset(offset).read() } as u8;
         unsafe { RX_QUEUE.push_back(data).unwrap() };
     }
 
     uart.int_clr.write(|w| w.rxfifo_full_int_clr().set_bit());
-}
-
-#[interrupt]
-fn UART0() {
-    uart_isr();
-    #[cfg(any(feature = "esp32", feature = "esp32s2", feature = "esp32s3"))]
-    interrupt::clear(ProCpu, Interrupt17LevelPriority1);
-    #[cfg(any(feature = "esp32c3", feature = "esp32c2"))]
-    interrupt::clear(ProCpu, Interrupt1);
 }
