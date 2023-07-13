@@ -2,7 +2,7 @@
 #![no_std]
 
 #[cfg(feature = "dprint")]
-use flasher_stub::hal::serial::{
+use flasher_stub::hal::uart::{
     config::{Config, DataBits, Parity, StopBits},
     TxRxPins,
 };
@@ -46,7 +46,7 @@ fn main() -> ! {
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
 
     #[cfg(feature = "dprint")]
-    let _ = Serial::new_with_config(
+    let _ = Uart::new_with_config(
         peripherals.UART1,
         Some(Config {
             baudrate: 115200,
@@ -59,6 +59,7 @@ fn main() -> ! {
             io.pins.gpio0.into_floating_input(),
         )),
         &clocks,
+        &mut system.peripheral_clock_control
     );
 
     let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);

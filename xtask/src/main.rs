@@ -88,7 +88,7 @@ fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
             "-Zbuild-std=core",
             "--release",
             &format!("--target={}", chip.target()),
-            &format!("--features={chip}"),
+            &format!("--features={chip},dprint"),
         ])
         .args(["--message-format", "json-diagnostic-rendered-ansi"])
         .current_dir(workspace)
@@ -144,6 +144,10 @@ fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
 fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
     use base64::engine::{general_purpose, Engine};
 
+    // ordering here matters! should be in order of placement in RAM
+    let text_sections = [".text_init", ".text", ".trap", ".rwtext"];
+    let data_sections = [".rodata", ".data"];
+
     let artifact_path = build(workspace, chip)?;
 
     let elf_data = fs::read(artifact_path)?;
@@ -151,19 +155,51 @@ fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
 
     let entry = elf.header.pt2.entry_point();
 
-    let text_section = elf.find_section_by_name(".text").unwrap();
-    let mut text = text_section.raw_data(&elf).to_vec();
-    let text_start = text_section.address();
+    let mut text = Vec::new();
+    let mut text_start = 0;
 
-    if text.len() % 4 != 0 {
-        text.extend(iter::repeat('\0' as u8).take(4 - (text.len() % 4)));
+    for (i, t) in text_sections.iter().enumerate() {
+        let text_section = elf.find_section_by_name(t).unwrap();
+        let next_t = text_sections.get(i + 1);
+        if text_start == 0 {
+            text_start = text_section.address();
+            log::info!("Found start: 0x{:08X}", text_start)
+        }
+        let mut text_data = text_section.raw_data(&elf).to_vec();
+        if let Some(next) = next_t {
+            let next_text_section = elf.find_section_by_name(next).unwrap();
+            let end = text_section.address() as usize + text_data.len();
+            let padding = next_text_section.address() as usize - end;
+            log::info!("Size of padding to next section: {}", padding);
+            text_data.extend(iter::repeat('\0' as u8).take(padding));
+        }
+        text.extend(&text_data);
     }
     let text = general_purpose::STANDARD.encode(&text);
 
-    let data_section = elf.find_section_by_name(".data").unwrap();
-    let data = data_section.raw_data(&elf).to_vec();
+    let mut data = Vec::new();
+    let mut data_start = 0;
+
+    for (i, t) in data_sections.iter().enumerate() {
+        let data_section = elf.find_section_by_name(t).unwrap();
+        let next_t = data_sections.get(i + 1);
+        if data_start == 0 {
+            data_start = data_section.address();
+            log::info!("Found start: 0x{:08X}", data_start)
+        }
+        let mut data_data = data_section.raw_data(&elf).to_vec();
+        if let Some(next) = next_t {
+            let next_data_section = elf.find_section_by_name(next).unwrap();
+            if next_data_section.raw_data(&elf).len() != 0 {
+                let end = data_section.address() as usize + data_data.len();
+                let padding = next_data_section.address() as usize - end;
+                log::info!("Size of padding to next section: {}", padding);
+                data_data.extend(iter::repeat('\0' as u8).take(padding));
+            }
+        }
+        data.extend(&data_data);
+    }
     let data = general_purpose::STANDARD.encode(&data);
-    let data_start = data_section.address();
 
     let stub = json!({
         "entry": entry,
