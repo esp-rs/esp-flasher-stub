@@ -9,10 +9,10 @@ exclude = [".github/", "esptool.patch"]
 
 [dependencies]
 critical-section  = "1.1.1"
-esp32-hal = { version = "0.13.0", optional = true }
-esp32c2-hal = { version = "0.8.0", optional = true }
+esp32-hal = { version = "0.13.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
+esp32c2-hal = { version = "0.8.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
 esp32c3-hal = { version = "0.10.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
-esp32s2-hal = { version = "0.10.0", optional = true }
+esp32s2-hal = { version = "0.10.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
 esp32s3-hal = { version = "0.10.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
 heapless = { version = "0.7.16", default-features = false }
 md-5 = { version = "0.10.5", default-features = false }

@@ -426,38 +426,6 @@ dependencies = [
 [[package]]
 name = "esp-hal-common"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05d4498ddbbbf9a21e64f9269d2b4dd4059c34863ff54c702fb99e435f967767"
-dependencies = [
- "basic-toml",
- "bitflags 2.3.3",
- "cfg-if",
- "critical-section",
- "embedded-dma",
- "embedded-hal",
- "esp-hal-procmacros 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "esp-riscv-rt 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "esp-synopsys-usb-otg",
- "esp32",
- "esp32c2",
- "esp32s2",
- "fugit",
- "lock_api",
- "log",
- "nb 1.1.0",
- "paste",
- "riscv-atomic-emulation-trap",
- "serde",
- "strum 0.24.1",
- "usb-device",
- "void",
- "xtensa-lx",
- "xtensa-lx-rt",
-]
-
-[[package]]
-name = "esp-hal-common"
-version = "0.10.0"
 source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
 dependencies = [
  "basic-toml",
@@ -466,10 +434,13 @@ dependencies = [
  "critical-section",
  "embedded-dma",
  "embedded-hal",
- "esp-hal-procmacros 0.6.0 (git+https://github.com/MabezDev/esp-hal?branch=segment-alias)",
- "esp-riscv-rt 0.3.0 (git+https://github.com/MabezDev/esp-hal?branch=segment-alias)",
+ "esp-hal-procmacros",
+ "esp-riscv-rt",
  "esp-synopsys-usb-otg",
+ "esp32",
+ "esp32c2",
  "esp32c3",
+ "esp32s2",
  "esp32s3",
  "fugit",
  "lock_api",
@@ -488,20 +459,6 @@ dependencies = [
 [[package]]
 name = "esp-hal-procmacros"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "042d5a1ef0e01d6de045972779e4aced3a10e6170169a5cb2de7bef31802e28a"
-dependencies = [
- "darling",
- "proc-macro-crate",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn 2.0.23",
-]
-
-[[package]]
-name = "esp-hal-procmacros"
-version = "0.6.0"
 source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
 dependencies = [
  "darling",
@@ -510,16 +467,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.23",
-]
-
-[[package]]
-name = "esp-riscv-rt"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e523ed9a26c604d4469dff4777484b14f977e864ba041f634ade1d7f47ef4151"
-dependencies = [
- "riscv",
- "riscv-rt-macros",
 ]
 
 [[package]]
@@ -557,11 +504,10 @@ dependencies = [
 [[package]]
 name = "esp32-hal"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "769fa34985651980dd337a5784285a24cd7f122700f3d5c4a027d4401b028aa2"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
 dependencies = [
  "embedded-hal",
- "esp-hal-common 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "esp-hal-common",
 ]
 
 [[package]]
@@ -577,11 +523,10 @@ dependencies = [
 [[package]]
 name = "esp32c2-hal"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d535b0a5adca6b0c1718c4a0be4cf072cf520aa4216306d69638fd908992c32"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
 dependencies = [
  "embedded-hal",
- "esp-hal-common 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "esp-hal-common",
 ]
 
 [[package]]
@@ -601,7 +546,7 @@ source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e17
 dependencies = [
  "cfg-if",
  "embedded-hal",
- "esp-hal-common 0.10.0 (git+https://github.com/MabezDev/esp-hal?branch=segment-alias)",
+ "esp-hal-common",
 ]
 
 [[package]]
@@ -618,11 +563,10 @@ dependencies = [
 [[package]]
 name = "esp32s2-hal"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a89f909010f72acc802c9c8d09cede3399a6650b3980998745cdefce6a527620"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e174671f90ac3bde9f2816701d11d4e1e8"
 dependencies = [
  "embedded-hal",
- "esp-hal-common 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "esp-hal-common",
  "xtensa-atomic-emulation-trap",
 ]
 
@@ -644,7 +588,7 @@ source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#e171c1e17
 dependencies = [
  "bare-metal",
  "embedded-hal",
- "esp-hal-common 0.10.0 (git+https://github.com/MabezDev/esp-hal?branch=segment-alias)",
+ "esp-hal-common",
 ]
 
 [[package]]
@@ -1232,9 +1176,6 @@ name = "strum"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
-dependencies = [
- "strum_macros 0.24.3",
-]
 
 [[package]]
 name = "strum"
