@@ -12,6 +12,7 @@ critical-section  = "1.1.1"
 esp32-hal = { version = "0.13.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
 esp32c2-hal = { version = "0.8.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
 esp32c3-hal = { version = "0.10.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
+esp32c6-hal = { version = "0.3.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
 esp32s2-hal = { version = "0.10.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
 esp32s3-hal = { version = "0.10.0", optional = true, git = "https://github.com/MabezDev/esp-hal", branch = "segment-alias" }
 heapless = { version = "0.7.16", default-features = false }
@@ -28,6 +29,7 @@ esp32 = ["esp32-hal"]
 esp32s2 = ["esp32s2-hal"]
 esp32s3 = ["esp32s3-hal"]
 esp32c3 = ["esp32c3-hal"]
+esp32c6 = ["esp32c6-hal"]
 esp32c2 = ["esp32c2-hal"]
 dprint = []
 

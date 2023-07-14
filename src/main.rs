@@ -17,10 +17,12 @@ const MSG_BUFFER_SIZE: usize = targets::MAX_WRITE_BLOCK + 0x400;
 #[flasher_stub::hal::entry]
 fn main() -> ! {
     let peripherals = peripherals::Peripherals::take();
-    #[cfg(not(feature = "esp32"))]
+    #[cfg(not(any(feature = "esp32", feature = "esp32c6")))]
     let mut system = peripherals.SYSTEM.split();
     #[cfg(feature = "esp32")]
     let mut system = peripherals.DPORT.split();
+    #[cfg(feature = "esp32c6")]
+    let mut system = peripherals.PCR.split();
 
     #[cfg(any(feature = "esp32", feature = "esp32s2"))]
     #[allow(unused)]
@@ -34,7 +36,7 @@ fn main() -> ! {
     )
     .freeze();
 
-    #[cfg(feature = "esp32c3")]
+    #[cfg(any(feature = "esp32c3", feature = "esp32c6"))]
     #[allow(unused)]
     let clocks = ClockControl::configure(
         system.clock_control,

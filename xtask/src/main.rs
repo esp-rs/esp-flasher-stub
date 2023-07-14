@@ -18,6 +18,7 @@ enum Chip {
     Esp32,
     Esp32c2,
     Esp32c3,
+    Esp32c6,
     Esp32s2,
     Esp32s3,
 }
@@ -25,7 +26,7 @@ enum Chip {
 impl Chip {
     pub fn toolchain(&self) -> &'static str {
         match self {
-            Chip::Esp32c2 | Chip::Esp32c3 => "+nightly",
+            Chip::Esp32c2 | Chip::Esp32c3 | Chip::Esp32c6 => "+nightly",
             Chip::Esp32 | Chip::Esp32s2 | Chip::Esp32s3 => "+esp",
         }
     }
@@ -34,6 +35,7 @@ impl Chip {
         match self {
             Chip::Esp32 => "xtensa-esp32-none-elf",
             Chip::Esp32c2 | Chip::Esp32c3 => "riscv32imc-unknown-none-elf",
+            Chip::Esp32c6 => "riscv32imac-unknown-none-elf",
             Chip::Esp32s2 => "xtensa-esp32s2-none-elf",
             Chip::Esp32s3 => "xtensa-esp32s3-none-elf",
         }
@@ -235,8 +237,8 @@ fn concat_sections(elf: &ElfFile, list: &[&str]) -> (u64, Vec<u8>) {
             let end = section.address() as usize + data_data.len();
             let padding = next.address() as usize - end;
             log::debug!("Size of padding to next section: {}", padding);
-            if padding > 512 {
-                log::warn!("Padding to next section seems large ({}bytes), are the correct linker sections being used?", padding);
+            if padding > 1024 {
+                log::warn!("Padding to next section seems large ({}bytes), are the correct linker sections being used? Current: 0x{:08X}, Next: 0x{:08X}", padding, section.address(), next.address());
             }
             padding
         } else if data_data.len() % 4 != 0 {

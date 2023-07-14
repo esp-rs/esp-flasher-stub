@@ -32,6 +32,8 @@ pub struct Stub<'a> {
     in_flash_mode: bool,
     #[cfg(feature = "esp32c3")]
     target: crate::targets::Esp32c3,
+    #[cfg(feature = "esp32c6")]
+    target: crate::targets::Esp32c6,
     #[cfg(feature = "esp32c2")]
     target: crate::targets::Esp32c2,
     #[cfg(feature = "esp32")]

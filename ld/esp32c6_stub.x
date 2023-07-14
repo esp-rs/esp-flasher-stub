@@ -1,0 +1,14 @@
+INCLUDE memory.x
+
+REGION_ALIAS("ROTEXT", RAM);
+REGION_ALIAS("RODATA", RAM);
+
+REGION_ALIAS("RWDATA", RAM);
+REGION_ALIAS("RWTEXT", RAM);
+
+REGION_ALIAS("RTC_FAST_RWTEXT", RTC_FAST);
+REGION_ALIAS("RTC_FAST_RWDATA", RTC_FAST);
+
+/* include linker script from esp-hal */
+INCLUDE bl-riscv-link.x
+INCLUDE rom-functions.x
