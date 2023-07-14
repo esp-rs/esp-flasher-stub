@@ -9,6 +9,8 @@ pub use esp32c2_hal as hal;
 pub use esp32c3_hal as hal;
 #[cfg(feature = "esp32c6")]
 pub use esp32c6_hal as hal;
+#[cfg(feature = "esp32h2")]
+pub use esp32h2_hal as hal;
 #[cfg(feature = "esp32s2")]
 pub use esp32s2_hal as hal;
 #[cfg(feature = "esp32s3")]

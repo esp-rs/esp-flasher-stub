@@ -19,6 +19,7 @@ enum Chip {
     Esp32c2,
     Esp32c3,
     Esp32c6,
+    Esp32h2,
     Esp32s2,
     Esp32s3,
 }
@@ -26,7 +27,7 @@ enum Chip {
 impl Chip {
     pub fn toolchain(&self) -> &'static str {
         match self {
-            Chip::Esp32c2 | Chip::Esp32c3 | Chip::Esp32c6 => "+nightly",
+            Chip::Esp32c2 | Chip::Esp32c3 | Chip::Esp32c6 | Chip::Esp32h2 => "+nightly",
             Chip::Esp32 | Chip::Esp32s2 | Chip::Esp32s3 => "+esp",
         }
     }
@@ -35,7 +36,7 @@ impl Chip {
         match self {
             Chip::Esp32 => "xtensa-esp32-none-elf",
             Chip::Esp32c2 | Chip::Esp32c3 => "riscv32imc-unknown-none-elf",
-            Chip::Esp32c6 => "riscv32imac-unknown-none-elf",
+            Chip::Esp32c6 | Chip::Esp32h2 => "riscv32imac-unknown-none-elf",
             Chip::Esp32s2 => "xtensa-esp32s2-none-elf",
             Chip::Esp32s3 => "xtensa-esp32s3-none-elf",
         }

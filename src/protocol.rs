@@ -34,6 +34,8 @@ pub struct Stub<'a> {
     target: crate::targets::Esp32c3,
     #[cfg(feature = "esp32c6")]
     target: crate::targets::Esp32c6,
+    #[cfg(feature = "esp32h2")]
+    target: crate::targets::Esp32h2,
     #[cfg(feature = "esp32c2")]
     target: crate::targets::Esp32c2,
     #[cfg(feature = "esp32")]

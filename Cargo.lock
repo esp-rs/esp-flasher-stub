@@ -441,6 +441,7 @@ dependencies = [
  "esp32c2",
  "esp32c3",
  "esp32c6",
+ "esp32h2",
  "esp32s2",
  "esp32s3",
  "fugit",
@@ -571,6 +572,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "esp32h2"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "feccdd689fa2945a2947029a944559dc41f3665e9af8d5faff1e232c5b866ab2"
+dependencies = [
+ "critical-section",
+ "vcell",
+]
+
+[[package]]
+name = "esp32h2-hal"
+version = "0.1.0"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+dependencies = [
+ "cfg-if",
+ "embedded-hal",
+ "esp-hal-common",
+]
+
+[[package]]
 name = "esp32s2"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -622,6 +643,7 @@ dependencies = [
  "esp32c2-hal",
  "esp32c3-hal",
  "esp32c6-hal",
+ "esp32h2-hal",
  "esp32s2-hal",
  "esp32s3-hal",
  "heapless",
