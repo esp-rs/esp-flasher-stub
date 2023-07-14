@@ -27,6 +27,8 @@ pub use targets::Esp32c2 as target;
 pub use targets::Esp32c3 as target;
 #[cfg(feature = "esp32c6")]
 pub use targets::Esp32c6 as target;
+#[cfg(feature = "esp32h2")]
+pub use targets::Esp32h2 as target;
 #[cfg(feature = "esp32s2")]
 pub use targets::Esp32s2 as target;
 #[cfg(feature = "esp32s3")]
