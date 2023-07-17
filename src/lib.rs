@@ -44,6 +44,7 @@ pub mod targets;
 #[derive(Debug)]
 pub enum TransportMethod {
     Uart,
+    #[cfg(any(feature = "esp32c3", feature = "esp32s3", feature = "esp32c6", feature = "esp32h2"))]
     UsbSerialJtag,
     #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]
     UsbOtg,
@@ -79,6 +80,7 @@ pub fn detect_transport() -> TransportMethod {
     let device = unsafe { esp_flasher_rom_get_uart() };
     let num = unsafe { (*device).buff_uart_no };
     match num {
+        #[cfg(any(feature = "esp32c3", feature = "esp32s3", feature = "esp32c6", feature = "esp32h2"))]
         USB_SERIAL_JTAG => TransportMethod::UsbSerialJtag,
         #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]
         USB_OTG => TransportMethod::UsbOtg,
