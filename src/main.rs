@@ -80,20 +80,30 @@ fn main() -> ! {
         &mut system.peripheral_clock_control,
     );
 
-    flasher_stub::dprintln!("Stub init!");
+    let transport = flasher_stub::detect_transport();
+    flasher_stub::dprintln!("Stub init! Transport detected: {:?}", transport);
 
-    let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
+    let mut transport = match transport {
+        flasher_stub::TransportMethod::Uart => {
+            let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
 
-    // Must be called after Serial::new, as it disables interrupts
-    serial.listen_rx_fifo_full();
+            // Must be called after Serial::new, as it disables interrupts
+            serial.listen_rx_fifo_full();
 
-    interrupt::enable(
-        peripherals::Interrupt::UART0,
-        interrupt::Priority::Priority1,
-    )
-    .unwrap();
+            interrupt::enable(
+                peripherals::Interrupt::UART0,
+                interrupt::Priority::Priority1,
+            )
+            .unwrap();
 
-    let mut stub = Stub::new(&mut serial);
+            serial
+        }
+        flasher_stub::TransportMethod::UsbSerialJtag => unimplemented!(),
+        #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]
+        flasher_stub::TransportMethod::UsbOtg => unimplemented!(),
+    };
+
+    let mut stub = Stub::new(&mut transport);
     flasher_stub::dprintln!("Stub sending greeting!");
     stub.send_greeting();
 

@@ -21,3 +21,4 @@ PROVIDE( ets_delay_us = 0x4000d888 );
 PROVIDE( tinfl_decompress = 0x40003000 );
 PROVIDE( spi_read_status_high = 0x40016284 );
 PROVIDE( spi_write_status = 0x400162a4  );
+PROVIDE( esp_flasher_rom_get_uart = 0x40012f60 );

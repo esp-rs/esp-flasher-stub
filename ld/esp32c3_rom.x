@@ -20,3 +20,4 @@ PROVIDE( esp_rom_spiflash_write_encrypted_disable = 0x4000011c );
 PROVIDE( esp_rom_spiflash_write_encrypted = 0x40000110 );
 PROVIDE( spi_read_status_high = 0x4000015c );
 PROVIDE( spi_write_status = 0x40000160 );
+PROVIDE( esp_flasher_rom_get_uart = 0x400000b0 );

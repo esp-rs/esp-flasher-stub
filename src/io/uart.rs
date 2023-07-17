@@ -1,13 +1,8 @@
-use heapless::Deque;
-
 use crate::{
     hal::{peripherals::UART0, prelude::*, uart::Instance, Uart},
     protocol::InputIO,
 };
-
-const RX_QUEUE_SIZE: usize = crate::targets::MAX_WRITE_BLOCK + 0x400;
-
-static mut RX_QUEUE: Deque<u8, RX_QUEUE_SIZE> = Deque::new();
+use super::RX_QUEUE;
 
 impl<T: Instance> InputIO for Uart<'_, T> {
     fn recv(&mut self) -> u8 {

@@ -28,3 +28,4 @@ PROVIDE( mbedtls_md5_update_ret = 0x40002be8 );
 PROVIDE( mbedtls_md5_finish_ret = 0x40002bec );
 PROVIDE( mbedtls_internal_md5_process = 0x40002bf0 );
 PROVIDE( mbedtls_md5_ret = 0x40002bf4 );
+PROVIDE( esp_flasher_rom_get_uart = 0x400000a8 );

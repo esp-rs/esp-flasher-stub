@@ -15,3 +15,4 @@ PROVIDE( esp_rom_spiflash_attach = 0x400001d4 );
 PROVIDE( esp_rom_spiflash_write_encrypted = 0x4000010c );
 PROVIDE( esp_rom_spiflash_write_enable = 0x40000154 );
 PROVIDE( esp_rom_spiflash_erase_area = 0x40000150 );
+PROVIDE( esp_flasher_rom_get_uart = 0x400000b4 );
