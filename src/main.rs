@@ -2,29 +2,27 @@
 #![no_std]
 
 #[cfg(feature = "dprint")]
-use flasher_stub::hal::serial::{
+use flasher_stub::hal::uart::{
     config::{Config, DataBits, Parity, StopBits},
     TxRxPins,
 };
 use flasher_stub::{
-    hal::{clock::ClockControl, interrupt, pac, prelude::*, Serial, IO},
+    hal::{clock::ClockControl, interrupt, peripherals, prelude::*, Uart, IO},
     protocol::Stub,
     targets,
 };
-#[cfg(target_arch = "riscv32")]
-use riscv_rt::entry;
-#[cfg(target_arch = "xtensa")]
-use xtensa_lx_rt::entry;
 
 const MSG_BUFFER_SIZE: usize = targets::MAX_WRITE_BLOCK + 0x400;
 
-#[entry]
+#[flasher_stub::hal::entry]
 fn main() -> ! {
-    let peripherals = pac::Peripherals::take().unwrap();
-    #[cfg(not(feature = "esp32"))]
-    let system = peripherals.SYSTEM.split();
+    let peripherals = peripherals::Peripherals::take();
+    #[cfg(not(any(feature = "esp32", feature = "esp32c6", feature = "esp32h2")))]
+    let mut system = peripherals.SYSTEM.split();
     #[cfg(feature = "esp32")]
-    let system = peripherals.DPORT.split();
+    let mut system = peripherals.DPORT.split();
+    #[cfg(any(feature = "esp32c6", feature = "esp32h2"))]
+    let mut system = peripherals.PCR.split();
 
     #[cfg(any(feature = "esp32", feature = "esp32s2"))]
     #[allow(unused)]
@@ -38,7 +36,7 @@ fn main() -> ! {
     )
     .freeze();
 
-    #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+    #[cfg(any(feature = "esp32c3", feature = "esp32c6"))]
     #[allow(unused)]
     let clocks = ClockControl::configure(
         system.clock_control,
@@ -46,11 +44,27 @@ fn main() -> ! {
     )
     .freeze();
 
+    #[cfg(feature = "esp32h2")]
+    #[allow(unused)]
+    let clocks = ClockControl::configure(
+        system.clock_control,
+        flasher_stub::hal::clock::CpuClock::Clock96MHz,
+    )
+    .freeze();
+
+    #[cfg(feature = "esp32s3")]
+    #[allow(unused)]
+    let clocks = ClockControl::configure(
+        system.clock_control,
+        flasher_stub::hal::clock::CpuClock::Clock240MHz,
+    )
+    .freeze();
+
     #[allow(unused)]
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
 
     #[cfg(feature = "dprint")]
-    let _ = Serial::new_with_config(
+    let _ = Uart::new_with_config(
         peripherals.UART1,
         Some(Config {
             baudrate: 115200,
@@ -63,21 +77,31 @@ fn main() -> ! {
             io.pins.gpio0.into_floating_input(),
         )),
         &clocks,
+        &mut system.peripheral_clock_control,
     );
 
-    let mut serial = Serial::new(peripherals.UART0);
+    flasher_stub::dprintln!("Stub init!");
+
+    let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
 
     // Must be called after Serial::new, as it disables interrupts
     serial.listen_rx_fifo_full();
 
-    interrupt::enable(pac::Interrupt::UART0, interrupt::Priority::Priority1).unwrap();
+    interrupt::enable(
+        peripherals::Interrupt::UART0,
+        interrupt::Priority::Priority1,
+    )
+    .unwrap();
 
     let mut stub = Stub::new(&mut serial);
+    flasher_stub::dprintln!("Stub sending greeting!");
     stub.send_greeting();
 
     let mut buffer: [u8; MSG_BUFFER_SIZE] = [0; MSG_BUFFER_SIZE];
     loop {
+        flasher_stub::dprintln!("Waiting for command");
         let data = stub.read_command(&mut buffer);
+        flasher_stub::dprintln!("Processing command");
         stub.process_command(data);
     }
 }

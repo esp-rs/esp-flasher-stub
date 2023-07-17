@@ -243,6 +243,12 @@ pub trait EspCommon {
         }
     }
 
+    #[cfg(any(feature = "esp32c6", feature = "esp32h2"))]
+    fn get_security_info(&self) -> Result<[u8; SECURITY_INFO_BYTES], Error> {
+        Err(Error::InvalidCommand)
+    }
+
+    #[cfg(not(any(feature = "esp32c6", feature = "esp32h2")))]
     fn get_security_info(&self) -> Result<[u8; SECURITY_INFO_BYTES], Error> {
         let mut buf: [u8; SECURITY_INFO_BYTES] = [0; SECURITY_INFO_BYTES];
 
@@ -257,7 +263,7 @@ pub trait EspCommon {
         let mut spiconfig: u32 = 0;
         // ESP32C2 and newer chips don't have `ets_efuse_get_spiconfig()`
         // use 0 instead
-        #[cfg(not(feature = "esp32c2"))]
+        #[cfg(not(any(feature = "esp32c2", feature = "esp32c6", feature = "esp32h2")))]
         let mut spiconfig = unsafe { ets_efuse_get_spiconfig() };
 
         let strapping = self.read_register(Self::GPIO_STRAP_REG);
@@ -328,6 +334,12 @@ pub trait EspCommon {
 pub struct Esp32c3;
 
 #[derive(Default)]
+pub struct Esp32c6;
+
+#[derive(Default)]
+pub struct Esp32h2;
+
+#[derive(Default)]
 pub struct Esp32c2;
 
 #[derive(Default)]
@@ -385,3 +397,5 @@ impl EspCommon for Esp32s2 {}
 impl EspCommon for Esp32s3 {}
 impl EspCommon for Esp32c3 {}
 impl EspCommon for Esp32c2 {}
+impl EspCommon for Esp32c6 {}
+impl EspCommon for Esp32h2 {}

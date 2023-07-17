@@ -1,16 +1,7 @@
 use heapless::Deque;
 
 use crate::{
-    hal::{
-        interrupt,
-        interrupt::CpuInterrupt::*,
-        pac,
-        pac::UART0,
-        prelude::*,
-        serial::Instance,
-        Cpu::*,
-        Serial,
-    },
+    hal::{peripherals::UART0, prelude::*, uart::Instance, Uart},
     protocol::InputIO,
 };
 
@@ -18,7 +9,7 @@ const RX_QUEUE_SIZE: usize = crate::targets::MAX_WRITE_BLOCK + 0x400;
 
 static mut RX_QUEUE: Deque<u8, RX_QUEUE_SIZE> = Deque::new();
 
-impl<T: Instance> InputIO for Serial<T> {
+impl<T: Instance> InputIO for Uart<'_, T> {
     fn recv(&mut self) -> u8 {
         unsafe { while critical_section::with(|_| RX_QUEUE.is_empty()) {} }
         unsafe { critical_section::with(|_| RX_QUEUE.pop_front().unwrap()) }
@@ -29,7 +20,8 @@ impl<T: Instance> InputIO for Serial<T> {
     }
 }
 
-fn uart_isr() {
+#[interrupt]
+fn UART0() {
     let uart = unsafe { &*UART0::ptr() };
 
     while uart.status.read().rxfifo_cnt().bits() > 0 {
@@ -39,23 +31,13 @@ fn uart_isr() {
             0
         };
 
-        let data = unsafe {
-            let data = (uart.fifo.as_ptr() as *mut u8).offset(offset)
-                as *mut crate::hal::pac::generic::Reg<crate::hal::pac::uart0::fifo::FIFO_SPEC>;
-            (*data).read().rxfifo_rd_byte().bits()
-        };
-
+        // read a byte from the fifo
+        // the read _must_ be a word read so the hardware correctly detects the read and
+        // pops the byte from the fifo cast the result to a u8, as only the
+        // first byte contains the data
+        let data = unsafe { (uart.fifo.as_ptr() as *mut u32).offset(offset).read() } as u8;
         unsafe { RX_QUEUE.push_back(data).unwrap() };
     }
 
     uart.int_clr.write(|w| w.rxfifo_full_int_clr().set_bit());
-}
-
-#[interrupt]
-fn UART0() {
-    uart_isr();
-    #[cfg(any(feature = "esp32", feature = "esp32s2", feature = "esp32s3"))]
-    interrupt::clear(ProCpu, Interrupt17LevelPriority1);
-    #[cfg(any(feature = "esp32c3", feature = "esp32c2"))]
-    interrupt::clear(ProCpu, Interrupt1);
 }

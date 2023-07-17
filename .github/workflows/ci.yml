@@ -33,6 +33,8 @@ jobs:
           [
             { chip: "esp32c2", target: "riscv32imc-unknown-none-elf" },
             { chip: "esp32c3", target: "riscv32imc-unknown-none-elf" },
+            { chip: "esp32c6", target: "riscv32imac-unknown-none-elf" },
+            { chip: "esp32h2", target: "riscv32imac-unknown-none-elf" },
           ]
 
     steps:
@@ -82,6 +84,8 @@ jobs:
           [
             { chip: "esp32c2", target: "riscv32imc-unknown-none-elf" },
             { chip: "esp32c3", target: "riscv32imc-unknown-none-elf" },
+            { chip: "esp32c6", target: "riscv32imac-unknown-none-elf" },
+            { chip: "esp32h2", target: "riscv32imac-unknown-none-elf" },
           ]
 
     steps:
@@ -145,6 +149,8 @@ jobs:
           [
             { chip: "esp32c2", target: "riscv32imc-unknown-none-elf" },
             { chip: "esp32c3", target: "riscv32imc-unknown-none-elf" },
+            { chip: "esp32c6", target: "riscv32imac-unknown-none-elf" },
+            { chip: "esp32h2", target: "riscv32imac-unknown-none-elf" },
           ]
 
     steps:
@@ -152,7 +158,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@v1
         with:
           target: ${{ matrix.build.target }}
-          toolchain: "1.60.0"
+          toolchain: "1.65.0"
           components: rust-src
       - name: cargo check
         run: cargo check --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }}
@@ -177,7 +183,7 @@ jobs:
           default: true
           ldproxy: false
           buildtargets: ${{ matrix.build.chip }}
-          version: "1.60.0"
+          version: "1.65.0"
       - uses: Swatinem/rust-cache@v2
       - name: cargo check
         run: cargo check -Zbuild-std=core --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }}

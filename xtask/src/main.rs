@@ -10,7 +10,7 @@ use cargo_metadata::Message;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::json;
 use strum::Display;
-use xmas_elf::ElfFile;
+use xmas_elf::{sections::SectionHeader, ElfFile};
 
 #[derive(Debug, Clone, Copy, PartialEq, Display, ValueEnum)]
 #[strum(serialize_all = "lowercase")]
@@ -18,6 +18,8 @@ enum Chip {
     Esp32,
     Esp32c2,
     Esp32c3,
+    Esp32c6,
+    Esp32h2,
     Esp32s2,
     Esp32s3,
 }
@@ -25,7 +27,7 @@ enum Chip {
 impl Chip {
     pub fn toolchain(&self) -> &'static str {
         match self {
-            Chip::Esp32c2 | Chip::Esp32c3 => "+nightly",
+            Chip::Esp32c2 | Chip::Esp32c3 | Chip::Esp32c6 | Chip::Esp32h2 => "+nightly",
             Chip::Esp32 | Chip::Esp32s2 | Chip::Esp32s3 => "+esp",
         }
     }
@@ -34,6 +36,7 @@ impl Chip {
         match self {
             Chip::Esp32 => "xtensa-esp32-none-elf",
             Chip::Esp32c2 | Chip::Esp32c3 => "riscv32imc-unknown-none-elf",
+            Chip::Esp32c6 | Chip::Esp32h2 => "riscv32imac-unknown-none-elf",
             Chip::Esp32s2 => "xtensa-esp32s2-none-elf",
             Chip::Esp32s3 => "xtensa-esp32s3-none-elf",
         }
@@ -86,6 +89,7 @@ fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
             &format!("{}", chip.toolchain()),
             "build",
             "-Zbuild-std=core",
+            "-Zbuild-std-features=panic_immediate_abort",
             "--release",
             &format!("--target={}", chip.target()),
             &format!("--features={chip}"),
@@ -144,6 +148,19 @@ fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
 fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
     use base64::engine::{general_purpose, Engine};
 
+    // ordering here matters! should be in order of placement in RAM
+    // note that sections that don't exists, or contain no data are ignored
+    let text_sections = [
+        ".vectors",
+        ".text_init",
+        ".text",
+        ".trap",
+        ".init",
+        ".fini",
+        ".rwtext",
+    ];
+    let data_sections = [".rodata", ".data"];
+
     let artifact_path = build(workspace, chip)?;
 
     let elf_data = fs::read(artifact_path)?;
@@ -151,19 +168,11 @@ fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
 
     let entry = elf.header.pt2.entry_point();
 
-    let text_section = elf.find_section_by_name(".text").unwrap();
-    let mut text = text_section.raw_data(&elf).to_vec();
-    let text_start = text_section.address();
-
-    if text.len() % 4 != 0 {
-        text.extend(iter::repeat('\0' as u8).take(4 - (text.len() % 4)));
-    }
+    let (text_start, text) = concat_sections(&elf, &text_sections);
     let text = general_purpose::STANDARD.encode(&text);
 
-    let data_section = elf.find_section_by_name(".data").unwrap();
-    let data = data_section.raw_data(&elf).to_vec();
+    let (data_start, data) = concat_sections(&elf, &data_sections);
     let data = general_purpose::STANDARD.encode(&data);
-    let data_start = data_section.address();
 
     let stub = json!({
         "entry": entry,
@@ -172,6 +181,8 @@ fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
         "data": data,
         "data_start": data_start,
     });
+
+    log::info!("Total size of stub is {}bytes", text.len() + data.len());
 
     let stub_file = workspace.join(format!("{chip}.json"));
     let contents = serde_json::to_string(&stub)?;
@@ -198,4 +209,47 @@ fn exit_with_process_status(status: ExitStatus) -> ! {
     let code = status.code().unwrap_or(1);
 
     exit(code)
+}
+
+fn concat_sections(elf: &ElfFile, list: &[&str]) -> (u64, Vec<u8>) {
+    let mut data = Vec::new();
+    let mut data_start = 0;
+
+    let sections: Vec<SectionHeader> = list
+        .iter()
+        .filter_map(|name| elf.find_section_by_name(name))
+        .filter(|s| s.raw_data(&elf).len() != 0)
+        .collect();
+
+    for (i, section) in sections.iter().enumerate() {
+        let next_t = sections.get(i + 1);
+        if data_start == 0 {
+            data_start = section.address();
+            log::debug!("Found start: 0x{:08X}", data_start)
+        }
+        let mut data_data = section.raw_data(&elf).to_vec();
+        let padding = if let Some(next) = next_t {
+            assert!(
+                section.address() < next.address(),
+                "Sections should be listed in ascending order. Current: 0x{:08X}, next: 0x{:08X}.",
+                section.address(),
+                next.address()
+            );
+            let end = section.address() as usize + data_data.len();
+            let padding = next.address() as usize - end;
+            log::debug!("Size of padding to next section: {}", padding);
+            if padding > 1024 {
+                log::warn!("Padding to next section seems large ({}bytes), are the correct linker sections being used? Current: 0x{:08X}, Next: 0x{:08X}", padding, section.address(), next.address());
+            }
+            padding
+        } else if data_data.len() % 4 != 0 {
+            4 - (data_data.len() % 4)
+        } else {
+            0
+        };
+        data_data.extend(iter::repeat('\0' as u8).take(padding));
+        data.extend(&data_data);
+    }
+
+    (data_start, data)
 }
