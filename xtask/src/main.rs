@@ -92,7 +92,7 @@ fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
             "-Zbuild-std-features=panic_immediate_abort",
             "--release",
             &format!("--target={}", chip.target()),
-            &format!("--features={chip},dprint"),
+            &format!("--features={chip}"),
         ])
         .args(["--message-format", "json-diagnostic-rendered-ansi"])
         .current_dir(workspace)
@@ -238,7 +238,7 @@ fn concat_sections(elf: &ElfFile, list: &[&str]) -> (u64, Vec<u8>) {
             let end = section.address() as usize + data_data.len();
             let padding = next.address() as usize - end;
             log::debug!("Size of padding to next section: {}", padding);
-            if padding > 1024 {
+            if padding > 512 {
                 log::warn!("Padding to next section seems large ({}bytes), are the correct linker sections being used? Current: 0x{:08X}, Next: 0x{:08X}", padding, section.address(), next.address());
             }
             padding

@@ -435,7 +435,7 @@ dependencies = [
 [[package]]
 name = "esp-hal-common"
 version = "0.10.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "basic-toml",
  "bitflags 2.3.3",
@@ -470,7 +470,7 @@ dependencies = [
 [[package]]
 name = "esp-hal-procmacros"
 version = "0.6.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "darling",
  "proc-macro-crate",
@@ -483,7 +483,7 @@ dependencies = [
 [[package]]
 name = "esp-riscv-rt"
 version = "0.3.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "riscv",
  "riscv-rt-macros",
@@ -515,7 +515,7 @@ dependencies = [
 [[package]]
 name = "esp32-hal"
 version = "0.13.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -534,7 +534,7 @@ dependencies = [
 [[package]]
 name = "esp32c2-hal"
 version = "0.8.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -553,7 +553,7 @@ dependencies = [
 [[package]]
 name = "esp32c3-hal"
 version = "0.10.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -573,7 +573,7 @@ dependencies = [
 [[package]]
 name = "esp32c6-hal"
 version = "0.3.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -593,7 +593,7 @@ dependencies = [
 [[package]]
 name = "esp32h2-hal"
 version = "0.1.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -614,7 +614,7 @@ dependencies = [
 [[package]]
 name = "esp32s2-hal"
 version = "0.10.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -635,7 +635,7 @@ dependencies = [
 [[package]]
 name = "esp32s3-hal"
 version = "0.10.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#6ee7fb58c57c0790354c1a9cf1c2da473d226fb8"
 dependencies = [
  "bare-metal",
  "embedded-hal",

@@ -8,7 +8,7 @@ use flasher_stub::hal::uart::{
 };
 use flasher_stub::{
     hal::{clock::ClockControl, interrupt, peripherals, prelude::*, Uart, IO},
-    protocol::{Stub, InputIO},
+    protocol::{InputIO, Stub},
     targets,
 };
 use static_cell::StaticCell;
@@ -97,21 +97,35 @@ fn main() -> ! {
             )
             .unwrap();
 
-            static mut TRANSPORT: StaticCell<Uart<'static, crate::peripherals::UART0>> = StaticCell::new();
+            static mut TRANSPORT: StaticCell<Uart<'static, crate::peripherals::UART0>> =
+                StaticCell::new();
             unsafe { TRANSPORT.init(serial) }
         }
-        #[cfg(any(feature = "esp32c3", feature = "esp32s3", feature = "esp32c6", feature = "esp32h2"))]
+        #[cfg(any(
+            feature = "esp32c3",
+            feature = "esp32s3",
+            feature = "esp32c6",
+            feature = "esp32h2"
+        ))]
         flasher_stub::TransportMethod::UsbSerialJtag => {
-            let mut usb_serial =
-                flasher_stub::hal::UsbSerialJtag::new(peripherals.USB_DEVICE, &mut system.peripheral_clock_control);
+            let mut usb_serial = flasher_stub::hal::UsbSerialJtag::new(
+                peripherals.USB_DEVICE,
+                &mut system.peripheral_clock_control,
+            );
             usb_serial.listen_rx_packet_recv_interrupt();
             interrupt::enable(
+                #[cfg(feature = "esp32c3")]
                 peripherals::Interrupt::USB_SERIAL_JTAG,
+                #[cfg(any(feature = "esp32c6", feature = "esp32h2"))]
+                peripherals::Interrupt::USB,
+                #[cfg(feature = "esp32s3")]
+                peripherals::Interrupt::USB_DEVICE,
                 interrupt::Priority::Priority1,
             )
             .unwrap();
 
-            static mut TRANSPORT: StaticCell<flasher_stub::hal::UsbSerialJtag<'static>> = StaticCell::new();
+            static mut TRANSPORT: StaticCell<flasher_stub::hal::UsbSerialJtag<'static>> =
+                StaticCell::new();
             unsafe { TRANSPORT.init(usb_serial) }
         }
         #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]

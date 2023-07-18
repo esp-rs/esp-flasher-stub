@@ -18,9 +18,25 @@ impl InputIO for UsbSerialJtag<'_> {
     }
 }
 
+#[cfg(feature = "esp32c3")]
 #[interrupt]
 unsafe fn USB_SERIAL_JTAG() {
-    crate::dprintln!("USB_DEVICE Interrupt!");
+    isr();
+}
+
+#[cfg(any(feature = "esp32c6", feature = "esp32h2"))]
+#[interrupt]
+unsafe fn USB() {
+    isr();
+}
+
+#[cfg(feature = "esp32s3")]
+#[interrupt]
+unsafe fn USB_DEVICE() {
+    isr();
+}
+
+unsafe fn isr() {
     let usj = crate::hal::peripherals::USB_DEVICE::steal();
     let reg_block = usj.register_block();
 
@@ -30,10 +46,14 @@ unsafe fn USB_SERIAL_JTAG() {
         .serial_out_ep_data_avail()
         .bit_is_set()
     {
-        unsafe { RX_QUEUE.push_back(reg_block.ep1.read().rdwr_byte().bits()).unwrap() };
+        unsafe {
+            RX_QUEUE
+                .push_back(reg_block.ep1.read().rdwr_byte().bits())
+                .unwrap()
+        };
     }
 
     reg_block
-            .int_clr
-            .write(|w| w.serial_out_recv_pkt_int_clr().set_bit());
+        .int_clr
+        .write(|w| w.serial_out_recv_pkt_int_clr().set_bit());
 }

@@ -1,8 +1,8 @@
+use super::RX_QUEUE;
 use crate::{
     hal::{peripherals::UART0, prelude::*, uart::Instance, Uart},
     protocol::InputIO,
 };
-use super::RX_QUEUE;
 
 impl<T: Instance> InputIO for Uart<'_, T> {
     fn recv(&mut self) -> u8 {
