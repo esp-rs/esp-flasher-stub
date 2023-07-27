@@ -441,7 +441,7 @@ dependencies = [
 [[package]]
 name = "esp-hal-common"
 version = "0.10.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "basic-toml",
  "bitfield",
@@ -477,7 +477,7 @@ dependencies = [
 [[package]]
 name = "esp-hal-procmacros"
 version = "0.6.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "darling",
  "proc-macro-crate",
@@ -490,7 +490,7 @@ dependencies = [
 [[package]]
 name = "esp-riscv-rt"
 version = "0.3.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "riscv",
  "riscv-rt-macros",
@@ -511,7 +511,7 @@ dependencies = [
 [[package]]
 name = "esp32"
 version = "0.24.0"
-source = "git+https://github.com/esp-rs/esp-pacs.git?rev=c72707e#c72707e8ca10851d39d2e93b6c0d35866731ea77"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -521,7 +521,7 @@ dependencies = [
 [[package]]
 name = "esp32-hal"
 version = "0.13.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -530,8 +530,7 @@ dependencies = [
 [[package]]
 name = "esp32c2"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9412ef5fe6197762a31a7d71bfdd8f28c296cd48cb556460e22a67b4be0a4d7e"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -540,7 +539,7 @@ dependencies = [
 [[package]]
 name = "esp32c2-hal"
 version = "0.8.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -549,7 +548,7 @@ dependencies = [
 [[package]]
 name = "esp32c3"
 version = "0.15.0"
-source = "git+https://github.com/esp-rs/esp-pacs.git?rev=c72707e#c72707e8ca10851d39d2e93b6c0d35866731ea77"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -558,7 +557,7 @@ dependencies = [
 [[package]]
 name = "esp32c3-hal"
 version = "0.10.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -568,7 +567,7 @@ dependencies = [
 [[package]]
 name = "esp32c6"
 version = "0.5.0"
-source = "git+https://github.com/esp-rs/esp-pacs.git?rev=c72707e#c72707e8ca10851d39d2e93b6c0d35866731ea77"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -577,7 +576,7 @@ dependencies = [
 [[package]]
 name = "esp32c6-hal"
 version = "0.3.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -587,7 +586,7 @@ dependencies = [
 [[package]]
 name = "esp32h2"
 version = "0.1.0"
-source = "git+https://github.com/esp-rs/esp-pacs.git?rev=c72707e#c72707e8ca10851d39d2e93b6c0d35866731ea77"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -596,7 +595,7 @@ dependencies = [
 [[package]]
 name = "esp32h2-hal"
 version = "0.1.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -606,8 +605,7 @@ dependencies = [
 [[package]]
 name = "esp32s2"
 version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22ae1c3966bb419ea6aaeff3c8f623a91dae61519ed900ed345b66a0e94dd26a"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -617,7 +615,7 @@ dependencies = [
 [[package]]
 name = "esp32s2-hal"
 version = "0.10.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -627,7 +625,7 @@ dependencies = [
 [[package]]
 name = "esp32s3"
 version = "0.19.0"
-source = "git+https://github.com/esp-rs/esp-pacs.git?rev=c72707e#c72707e8ca10851d39d2e93b6c0d35866731ea77"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -637,7 +635,7 @@ dependencies = [
 [[package]]
 name = "esp32s3-hal"
 version = "0.10.0"
-source = "git+https://github.com/esp-rs/esp-hal?rev=28ac202f1a6850e41d61b967ea5d6745fcb7220e#28ac202f1a6850e41d61b967ea5d6745fcb7220e"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "bare-metal",
  "embedded-hal",

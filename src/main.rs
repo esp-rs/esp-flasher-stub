@@ -114,11 +114,6 @@ fn main() -> ! {
             );
             usb_serial.listen_rx_packet_recv_interrupt();
             interrupt::enable(
-                #[cfg(feature = "esp32c3")]
-                peripherals::Interrupt::USB_SERIAL_JTAG,
-                #[cfg(any(feature = "esp32c6", feature = "esp32h2"))]
-                peripherals::Interrupt::USB,
-                #[cfg(feature = "esp32s3")]
                 peripherals::Interrupt::USB_DEVICE,
                 interrupt::Priority::Priority1,
             )

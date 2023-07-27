@@ -18,25 +18,8 @@ impl InputIO for UsbSerialJtag<'_> {
     }
 }
 
-#[cfg(feature = "esp32c3")]
-#[interrupt]
-unsafe fn USB_SERIAL_JTAG() {
-    isr();
-}
-
-#[cfg(any(feature = "esp32c6", feature = "esp32h2"))]
-#[interrupt]
-unsafe fn USB() {
-    isr();
-}
-
-#[cfg(feature = "esp32s3")]
 #[interrupt]
 unsafe fn USB_DEVICE() {
-    isr();
-}
-
-unsafe fn isr() {
     let usj = crate::hal::peripherals::USB_DEVICE::steal();
     let reg_block = usj.register_block();
 
