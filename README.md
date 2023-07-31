@@ -6,7 +6,7 @@
 
 Rust implementation of flasher stub located in [esptool](https://github.com/espressif/esptool/).
 
-Supports the ESP32, ESP32-C2/C3, and ESP32-S2/S3. Currently `UART` is the only supported transport mode, however support for other modes is planned.
+Supports the ESP32, ESP32-C2/C3/C6, ESP32-H2, and ESP32-S2/S3. Currently `UART` and `USB Serial JTAG` are the supported transport modes, and support for other modes is planned.
 
 ## Quickstart
 
@@ -28,6 +28,12 @@ cargo +nightly build --release --features=esp32c2 --target=riscv32imc-unknown-no
 
 # ESP32-C3
 cargo +nightly build --release --features=esp32c3 --target=riscv32imc-unknown-none-elf
+
+# ESP32-C6
+cargo +nightly build --release --features=esp32c6 --target=riscv32imac-unknown-none-elf
+
+# ESP32-H2
+cargo +nightly build --release --features=esp32h2 --target=riscv32imac-unknown-none-elf
 
 # ESP32-S2
 cargo +esp build --release --features=esp32s2 --target=xtensa-esp32s2-none-elf
