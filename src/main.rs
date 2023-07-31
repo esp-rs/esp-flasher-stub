@@ -8,9 +8,10 @@ use flasher_stub::hal::uart::{
 };
 use flasher_stub::{
     hal::{clock::ClockControl, interrupt, peripherals, prelude::*, Uart, IO},
-    protocol::Stub,
+    protocol::{InputIO, Stub},
     targets,
 };
+use static_cell::StaticCell;
 
 const MSG_BUFFER_SIZE: usize = targets::MAX_WRITE_BLOCK + 0x400;
 
@@ -80,20 +81,53 @@ fn main() -> ! {
         &mut system.peripheral_clock_control,
     );
 
-    flasher_stub::dprintln!("Stub init!");
+    let transport = flasher_stub::detect_transport();
+    flasher_stub::dprintln!("Stub init! Transport detected: {:?}", transport);
 
-    let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
+    let transport: &'static mut dyn InputIO = match transport {
+        flasher_stub::TransportMethod::Uart => {
+            let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
 
-    // Must be called after Serial::new, as it disables interrupts
-    serial.listen_rx_fifo_full();
+            // Must be called after Serial::new, as it disables interrupts
+            serial.listen_rx_fifo_full();
 
-    interrupt::enable(
-        peripherals::Interrupt::UART0,
-        interrupt::Priority::Priority1,
-    )
-    .unwrap();
+            interrupt::enable(
+                peripherals::Interrupt::UART0,
+                interrupt::Priority::Priority1,
+            )
+            .unwrap();
 
-    let mut stub = Stub::new(&mut serial);
+            static mut TRANSPORT: StaticCell<Uart<'static, crate::peripherals::UART0>> =
+                StaticCell::new();
+            unsafe { TRANSPORT.init(serial) }
+        }
+        #[cfg(any(
+            feature = "esp32c3",
+            feature = "esp32s3",
+            feature = "esp32c6",
+            feature = "esp32h2"
+        ))]
+        flasher_stub::TransportMethod::UsbSerialJtag => {
+            let mut usb_serial = flasher_stub::hal::UsbSerialJtag::new(
+                peripherals.USB_DEVICE,
+                &mut system.peripheral_clock_control,
+            );
+            usb_serial.listen_rx_packet_recv_interrupt();
+            interrupt::enable(
+                peripherals::Interrupt::USB_DEVICE,
+                interrupt::Priority::Priority1,
+            )
+            .unwrap();
+
+            static mut TRANSPORT: StaticCell<flasher_stub::hal::UsbSerialJtag<'static>> =
+                StaticCell::new();
+            unsafe { TRANSPORT.init(usb_serial) }
+        }
+        #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]
+        flasher_stub::TransportMethod::UsbOtg => unimplemented!(),
+    };
+
+    let mut stub = Stub::new(transport);
     flasher_stub::dprintln!("Stub sending greeting!");
     stub.send_greeting();
 

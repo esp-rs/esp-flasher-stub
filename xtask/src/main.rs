@@ -238,7 +238,7 @@ fn concat_sections(elf: &ElfFile, list: &[&str]) -> (u64, Vec<u8>) {
             let end = section.address() as usize + data_data.len();
             let padding = next.address() as usize - end;
             log::debug!("Size of padding to next section: {}", padding);
-            if padding > 1024 {
+            if padding > 512 {
                 log::warn!("Padding to next section seems large ({}bytes), are the correct linker sections being used? Current: 0x{:08X}, Next: 0x{:08X}", padding, section.address(), next.address());
             }
             padding

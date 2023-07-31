@@ -99,6 +99,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "atomic-polyfill"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cf2bce30dfe09ef0bfaef228b9d414faaf7e563035494d7fe092dba54b300f4"
+dependencies = [
+ "critical-section",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -141,6 +150,12 @@ name = "bit_field"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcb6dd1c2376d2e096796e234a70e17e94cc2d5d54ff8ce42b28cef1d0d359a4"
+
+[[package]]
+name = "bitfield"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d7e60934ceec538daadb9d8432424ed043a904d8e0243f3c6446bce549a46ac"
 
 [[package]]
 name = "bitflags"
@@ -426,9 +441,10 @@ dependencies = [
 [[package]]
 name = "esp-hal-common"
 version = "0.10.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "basic-toml",
+ "bitfield",
  "bitflags 2.3.3",
  "cfg-if",
  "critical-section",
@@ -461,7 +477,7 @@ dependencies = [
 [[package]]
 name = "esp-hal-procmacros"
 version = "0.6.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "darling",
  "proc-macro-crate",
@@ -474,7 +490,7 @@ dependencies = [
 [[package]]
 name = "esp-riscv-rt"
 version = "0.3.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "riscv",
  "riscv-rt-macros",
@@ -482,9 +498,9 @@ dependencies = [
 
 [[package]]
 name = "esp-synopsys-usb-otg"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0879f2f008c0213b1a5959345e54afcbf1490c1591f5145a5e65bdff371b65af"
+checksum = "5cc6734e87e7b86858f7884649deae6bf634d1e6f5b2d078e457cf4d72c541ec"
 dependencies = [
  "critical-section",
  "embedded-hal",
@@ -495,8 +511,7 @@ dependencies = [
 [[package]]
 name = "esp32"
 version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e0a6cd6fdb2f8fd98e65d12c1ccc24d3410def1a8a9b660a64d15dfe70b6857"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -506,7 +521,7 @@ dependencies = [
 [[package]]
 name = "esp32-hal"
 version = "0.13.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -515,8 +530,7 @@ dependencies = [
 [[package]]
 name = "esp32c2"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9412ef5fe6197762a31a7d71bfdd8f28c296cd48cb556460e22a67b4be0a4d7e"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -525,7 +539,7 @@ dependencies = [
 [[package]]
 name = "esp32c2-hal"
 version = "0.8.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -534,8 +548,7 @@ dependencies = [
 [[package]]
 name = "esp32c3"
 version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae547e9a4524b34c2b302fd71c304f8b221bcd4eed4ef17c8bf53408baacad5f"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -544,7 +557,7 @@ dependencies = [
 [[package]]
 name = "esp32c3-hal"
 version = "0.10.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -554,8 +567,7 @@ dependencies = [
 [[package]]
 name = "esp32c6"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69d73f86b582845ee79dcc441d2c616bc6688c5b24741409c544949ffe3c1d24"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -564,7 +576,7 @@ dependencies = [
 [[package]]
 name = "esp32c6-hal"
 version = "0.3.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -574,8 +586,7 @@ dependencies = [
 [[package]]
 name = "esp32h2"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "feccdd689fa2945a2947029a944559dc41f3665e9af8d5faff1e232c5b866ab2"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -584,7 +595,7 @@ dependencies = [
 [[package]]
 name = "esp32h2-hal"
 version = "0.1.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "cfg-if",
  "embedded-hal",
@@ -594,8 +605,7 @@ dependencies = [
 [[package]]
 name = "esp32s2"
 version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22ae1c3966bb419ea6aaeff3c8f623a91dae61519ed900ed345b66a0e94dd26a"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -605,7 +615,7 @@ dependencies = [
 [[package]]
 name = "esp32s2-hal"
 version = "0.10.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "embedded-hal",
  "esp-hal-common",
@@ -615,8 +625,7 @@ dependencies = [
 [[package]]
 name = "esp32s3"
 version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f05672306ffd2f39665c7eaf4615fc1d26f4cebfd0ad51828f81e53377fec5c"
+source = "git+https://github.com/esp-rs/esp-pacs?rev=ce6d5b5#ce6d5b5641be55241e77cdb5915b2e3513c8a7a5"
 dependencies = [
  "critical-section",
  "vcell",
@@ -626,7 +635,7 @@ dependencies = [
 [[package]]
 name = "esp32s3-hal"
 version = "0.10.0"
-source = "git+https://github.com/MabezDev/esp-hal?branch=segment-alias#10731d641532f92f837a1c17f1a861c7bccba473"
+source = "git+https://github.com/esp-rs/esp-hal?rev=00fac71#00fac71b68ef0cb07b2d6af992b13826e43fa7cc"
 dependencies = [
  "bare-metal",
  "embedded-hal",
@@ -651,6 +660,7 @@ dependencies = [
  "md-5",
  "mockall",
  "mockall_double",
+ "static_cell",
 ]
 
 [[package]]
@@ -720,7 +730,7 @@ version = "0.7.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db04bc24a18b9ea980628ecf00e6c0264f3c1426dac36c00cb49b6fbad8b0743"
 dependencies = [
- "atomic-polyfill",
+ "atomic-polyfill 0.1.11",
  "hash32",
  "rustc_version",
  "spin",
@@ -1208,6 +1218,15 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
+
+[[package]]
+name = "static_cell"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49cd323fc21eb534f903ee78d781d622099f9716c5b408ed23bcf39f8f1651c0"
+dependencies = [
+ "atomic-polyfill 1.0.3",
+]
 
 [[package]]
 name = "strsim"
