@@ -29,37 +29,15 @@ fn main() -> ! {
     #[allow(unused)]
     let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); // TODO: ESP32 and S2 only works with `boot_defauls` for some reason
 
-    #[cfg(feature = "esp32c2")]
+    #[cfg(any(
+        feature = "esp32c2",
+        feature = "esp32c3",
+        feature = "esp32h2",
+        feature = "esp32c6",
+        feature = "esp32s3"
+    ))]
     #[allow(unused)]
-    let clocks = ClockControl::configure(
-        system.clock_control,
-        flasher_stub::hal::clock::CpuClock::Clock120MHz,
-    )
-    .freeze();
-
-    #[cfg(any(feature = "esp32c3", feature = "esp32c6"))]
-    #[allow(unused)]
-    let clocks = ClockControl::configure(
-        system.clock_control,
-        flasher_stub::hal::clock::CpuClock::Clock160MHz,
-    )
-    .freeze();
-
-    #[cfg(feature = "esp32h2")]
-    #[allow(unused)]
-    let clocks = ClockControl::configure(
-        system.clock_control,
-        flasher_stub::hal::clock::CpuClock::Clock96MHz,
-    )
-    .freeze();
-
-    #[cfg(feature = "esp32s3")]
-    #[allow(unused)]
-    let clocks = ClockControl::configure(
-        system.clock_control,
-        flasher_stub::hal::clock::CpuClock::Clock240MHz,
-    )
-    .freeze();
+    let clocks = ClockControl::max(system.clock_control).freeze();
 
     #[allow(unused)]
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
@@ -88,7 +66,6 @@ fn main() -> ! {
         flasher_stub::TransportMethod::Uart => {
             let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
 
-            // Must be called after Serial::new, as it disables interrupts
             serial.listen_rx_fifo_full();
 
             interrupt::enable(
