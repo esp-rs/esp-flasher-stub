@@ -8,7 +8,8 @@ use flasher_stub::hal::uart::{
 };
 use flasher_stub::{
     hal::{clock::ClockControl, interrupt, peripherals, prelude::*, Uart, IO},
-    protocol::{InputIO, Stub},
+    io::Transport,
+    protocol::Stub,
     targets,
 };
 use static_cell::StaticCell;
@@ -62,7 +63,7 @@ fn main() -> ! {
     let transport = flasher_stub::detect_transport();
     flasher_stub::dprintln!("Stub init! Transport detected: {:?}", transport);
 
-    let transport: &'static mut dyn InputIO = match transport {
+    let transport = match transport {
         flasher_stub::TransportMethod::Uart => {
             let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
 
@@ -76,7 +77,7 @@ fn main() -> ! {
 
             static mut TRANSPORT: StaticCell<Uart<'static, crate::peripherals::UART0>> =
                 StaticCell::new();
-            unsafe { TRANSPORT.init(serial) }
+            Transport::Uart(unsafe { TRANSPORT.init(serial) })
         }
         #[cfg(any(
             feature = "esp32c3",
@@ -98,7 +99,7 @@ fn main() -> ! {
 
             static mut TRANSPORT: StaticCell<flasher_stub::hal::UsbSerialJtag<'static>> =
                 StaticCell::new();
-            unsafe { TRANSPORT.init(usb_serial) }
+            Transport::UsbSerialJtag(unsafe { TRANSPORT.init(usb_serial) })
         }
         #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]
         flasher_stub::TransportMethod::UsbOtg => unimplemented!(),

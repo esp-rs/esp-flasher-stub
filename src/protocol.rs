@@ -20,8 +20,18 @@ pub trait InputIO {
     fn send(&mut self, data: &[u8]);
 }
 
-pub struct Stub<'a> {
-    io: &'a mut (dyn InputIO + 'a),
+impl<T: InputIO> InputIO for &mut T {
+    fn recv(&mut self) -> u8 {
+        (*self).recv()
+    }
+
+    fn send(&mut self, data: &[u8]) {
+        (*self).send(data)
+    }
+}
+
+pub struct Stub<T> {
+    io: T,
     end_addr: u32,
     write_addr: u32,
     erase_addr: u32,
@@ -63,8 +73,8 @@ fn u32_from_slice(slice: &[u8], index: usize) -> u32 {
     u32::from_le_bytes(slice[index..index + 4].try_into().unwrap())
 }
 
-impl<'a> Stub<'a> {
-    pub fn new(input_io: &'a mut dyn InputIO) -> Self {
+impl<T: InputIO> Stub<T> {
+    pub fn new(input_io: T) -> Self {
         let stub = Stub {
             io: input_io,
             write_addr: 0,
@@ -84,19 +94,19 @@ impl<'a> Stub<'a> {
 
     fn send_response(&mut self, resp: &Response) {
         let resp_slice = unsafe { to_slice_u8(resp) };
-        write_delimiter(self.io);
-        write_raw(self.io, &resp_slice[..RESPONSE_SIZE]);
-        write_raw(self.io, resp.data);
-        write_delimiter(self.io);
+        write_delimiter(&mut self.io);
+        write_raw(&mut self.io, &resp_slice[..RESPONSE_SIZE]);
+        write_raw(&mut self.io, resp.data);
+        write_delimiter(&mut self.io);
     }
 
     fn send_response_with_data(&mut self, resp: &Response, data: &[u8]) {
         let resp_slice = unsafe { to_slice_u8(resp) };
-        write_delimiter(self.io);
-        write_raw(self.io, &resp_slice[..RESPONSE_SIZE - 2]);
-        write_raw(self.io, data);
-        write_raw(self.io, &resp_slice[RESPONSE_SIZE - 2..RESPONSE_SIZE]);
-        write_delimiter(self.io);
+        write_delimiter(&mut self.io);
+        write_raw(&mut self.io, &resp_slice[..RESPONSE_SIZE - 2]);
+        write_raw(&mut self.io, data);
+        write_raw(&mut self.io, &resp_slice[RESPONSE_SIZE - 2..RESPONSE_SIZE]);
+        write_delimiter(&mut self.io);
     }
 
     fn send_md5_response(&mut self, resp: &Response, md5: &[u8]) {
@@ -109,7 +119,7 @@ impl<'a> Stub<'a> {
 
     pub fn send_greeting(&mut self) {
         let greeting = [b'O', b'H', b'A', b'I'];
-        write_packet(self.io, &greeting);
+        write_packet(&mut self.io, &greeting);
     }
 
     fn calculate_md5(&mut self, mut address: u32, mut size: u32) -> Result<[u8; 16], Error> {
@@ -374,18 +384,18 @@ impl<'a> Stub<'a> {
                 let len = min(params.packet_size, remaining);
                 self.target
                     .spi_flash_read(address, &mut buffer[..len as usize])?;
-                write_packet(self.io, &buffer[..len as usize]);
+                write_packet(&mut self.io, &buffer[..len as usize]);
                 hasher.consume(&buffer[0..len as usize]);
                 remaining -= len;
                 address += len;
                 sent += len;
             }
-            let resp = read_packet(self.io, &mut ack_buf);
+            let resp = read_packet(&mut self.io, &mut ack_buf);
             acked = u32_from_slice(resp, 0);
         }
 
         let md5: [u8; 16] = hasher.compute().into();
-        write_packet(self.io, &md5);
+        write_packet(&mut self.io, &md5);
         Ok(())
     }
 
@@ -497,14 +507,14 @@ impl<'a> Stub<'a> {
     }
 
     pub fn read_command<'c>(&mut self, buffer: &'c mut [u8]) -> &'c [u8] {
-        read_packet(self.io, buffer)
+        read_packet(&mut self.io, buffer)
     }
 }
 
 mod slip {
     use super::*;
 
-    pub fn read_packet<'c>(io: &mut dyn InputIO, packet: &'c mut [u8]) -> &'c [u8] {
+    pub fn read_packet<'c, T: InputIO>(io: &mut T, packet: &'c mut [u8]) -> &'c [u8] {
         while io.recv() != 0xC0 {}
 
         // Replace: 0xDB 0xDC -> 0xC0 and 0xDB 0xDD -> 0xDB
@@ -525,7 +535,7 @@ mod slip {
         &packet[..i]
     }
 
-    pub fn write_raw(io: &mut dyn InputIO, data: &[u8]) {
+    pub fn write_raw<T: InputIO>(io: &mut T, data: &[u8]) {
         for byte in data {
             match byte {
                 0xC0 => io.send(&[0xDB, 0xDC]),
@@ -535,13 +545,13 @@ mod slip {
         }
     }
 
-    pub fn write_packet(io: &mut dyn InputIO, data: &[u8]) {
+    pub fn write_packet<T: InputIO>(io: &mut T, data: &[u8]) {
         write_delimiter(io);
         write_raw(io, data);
         write_delimiter(io);
     }
 
-    pub fn write_delimiter(io: &mut dyn InputIO) {
+    pub fn write_delimiter<T: InputIO>(io: &mut T) {
         io.send(&[0xC0]);
     }
 }
