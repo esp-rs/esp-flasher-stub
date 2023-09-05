@@ -49,23 +49,27 @@ cargo xtask wrap esp32c3
 cargo xtask wrap esp32 esp32s2 esp32s3
 ```
 
+JSON stub files will be generated in the project root directory.
+
 ## Testing
 
 In order to run `test_esptool.py` follow steps below:
 
 - Build `esp-flasher-stub` as described in the section above.
-- Clone `esptool` to the same directory where `esp-flasher-stub` resides.
-- Run patched Makefile
+- Clone `esptool`, if you don't have it yet:
+  ```
+  git clone https://github.com/espressif/esptool
+  ```
+- Copy the stub JSON files into esptool installation. You can use the following one-liner:
+  ```bash
+  for n in esp*.json; do cp $n $ESPTOOL_PATH/esptool/targets/stub_flasher/stub_flasher_${n#esp}; done
+  ```
+  where `ESPTOOL_PATH` is set to the location where you have cloned `esptool`.
 - Run tests
-
-```bash
-git clone https://github.com/espressif/esptool
-cd esptool/flasher_stub/
-git apply Makefile_patched.patch
-make -C .
-cd ../test
-pytest test_esptool.py --port /dev/ttyUSB0 --chip esp32 --baud 115200
-```
+  ```bash
+  cd $ESPTOOL_PATH/test
+  pytest test_esptool.py --port /dev/ttyUSB0 --chip esp32 --baud 115200
+  ```
 
 ## Debug logs
 
