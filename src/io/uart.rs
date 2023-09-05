@@ -11,7 +11,7 @@ impl<T: Instance> InputIO for Uart<'_, T> {
     }
 
     fn send(&mut self, bytes: &[u8]) {
-        self.write_bytes(bytes).unwrap()
+        self.write_bytes(bytes).unwrap();
     }
 }
 
