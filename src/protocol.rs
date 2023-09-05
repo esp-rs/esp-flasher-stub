@@ -1,10 +1,10 @@
 use core::{cmp::min, mem::size_of, slice};
 
-use md5::{Digest, Md5};
 use slip::*;
 
 use crate::{
     commands::{CommandCode::*, Error::*, *},
+    hal::rom::md5::Context,
     miniz_types::*,
     targets::{EspCommon, FLASH_BLOCK_SIZE, FLASH_SECTOR_MASK},
 };
@@ -114,17 +114,17 @@ impl<'a> Stub<'a> {
 
     fn calculate_md5(&mut self, mut address: u32, mut size: u32) -> Result<[u8; 16], Error> {
         let mut buffer: [u8; FLASH_SECTOR_SIZE as usize] = [0; FLASH_SECTOR_SIZE as usize];
-        let mut hasher = Md5::new();
+        let mut hasher = Context::new();
 
         while size > 0 {
             let to_read = min(size, FLASH_SECTOR_SIZE);
             self.target.spi_flash_read(address, &mut buffer)?;
-            hasher.update(&buffer[0..to_read as usize]);
+            hasher.consume(&buffer[0..to_read as usize]);
             size -= to_read;
             address += to_read;
         }
 
-        let result: [u8; 16] = hasher.finalize().into();
+        let result: [u8; 16] = hasher.compute().into();
         Ok(result)
     }
 
@@ -365,7 +365,7 @@ impl<'a> Stub<'a> {
         let mut remaining = params.total_size;
         let mut acked = 0;
         let mut ack_buf: [u8; 4] = [0; 4];
-        let mut hasher = Md5::new();
+        let mut hasher = Context::new();
         let mut sent = 0;
         let max_inflight_bytes = params.max_inflight * params.packet_size;
 
@@ -375,7 +375,7 @@ impl<'a> Stub<'a> {
                 self.target
                     .spi_flash_read(address, &mut buffer[..len as usize])?;
                 write_packet(self.io, &buffer[..len as usize]);
-                hasher.update(&buffer[0..len as usize]);
+                hasher.consume(&buffer[0..len as usize]);
                 remaining -= len;
                 address += len;
                 sent += len;
@@ -384,7 +384,7 @@ impl<'a> Stub<'a> {
             acked = u32_from_slice(resp, 0);
         }
 
-        let md5: [u8; 16] = hasher.finalize().into();
+        let md5: [u8; 16] = hasher.compute().into();
         write_packet(self.io, &md5);
         Ok(())
     }
