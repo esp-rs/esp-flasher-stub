@@ -1,4 +1,4 @@
-use super::RX_QUEUE;
+use super::{UartMarker, RX_QUEUE};
 use crate::{
     hal::{peripherals::UART0, prelude::*, uart::Instance, Uart},
     protocol::InputIO,
@@ -15,6 +15,8 @@ impl<T: Instance> InputIO for Uart<'_, T> {
     }
 }
 
+impl<T: Instance> UartMarker for Uart<'_, T> {}
+
 #[interrupt]
 fn UART0() {
     let uart = unsafe { &*UART0::ptr() };
@@ -30,7 +32,7 @@ fn UART0() {
         // the read _must_ be a word read so the hardware correctly detects the read and
         // pops the byte from the fifo cast the result to a u8, as only the
         // first byte contains the data
-        let data = unsafe { (uart.fifo.as_ptr() as *mut u32).offset(offset).read() } as u8;
+        let data = unsafe { uart.fifo.as_ptr().offset(offset).read() } as u8;
         unsafe { RX_QUEUE.push_back(data).unwrap() };
     }
 

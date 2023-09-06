@@ -40,20 +40,7 @@ pub struct Stub<T> {
     decompressor: tinfl_decompressor,
     last_error: Option<Error>,
     in_flash_mode: bool,
-    #[cfg(feature = "esp32c3")]
-    target: crate::targets::Esp32c3,
-    #[cfg(feature = "esp32c6")]
-    target: crate::targets::Esp32c6,
-    #[cfg(feature = "esp32h2")]
-    target: crate::targets::Esp32h2,
-    #[cfg(feature = "esp32c2")]
-    target: crate::targets::Esp32c2,
-    #[cfg(feature = "esp32")]
-    target: crate::targets::Esp32,
-    #[cfg(feature = "esp32s3")]
-    target: crate::targets::Esp32s3,
-    #[cfg(feature = "esp32s2")]
-    target: crate::targets::Esp32s2,
+    target: crate::target,
 }
 
 fn slice_to_struct<T: Sized + Copy>(slice: &[u8]) -> Result<T, Error> {

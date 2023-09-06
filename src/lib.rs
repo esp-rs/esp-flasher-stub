@@ -15,9 +15,6 @@ pub use esp32h2_hal as hal;
 pub use esp32s2_hal as hal;
 #[cfg(feature = "esp32s3")]
 pub use esp32s3_hal as hal;
-// Due to a bug in esp-hal this MUST be included in the root.
-#[cfg(target_arch = "riscv32")]
-pub use hal::interrupt;
 // Re-export the correct target based on which feature is active
 #[cfg(feature = "esp32")]
 pub use targets::Esp32 as target;
@@ -44,18 +41,15 @@ pub mod targets;
 #[derive(Debug)]
 pub enum TransportMethod {
     Uart,
-    #[cfg(any(
-        feature = "esp32c3",
-        feature = "esp32s3",
-        feature = "esp32c6",
-        feature = "esp32h2"
-    ))]
+    #[cfg(usb_device)]
     UsbSerialJtag,
-    #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]
+    #[cfg(usb0)]
     UsbOtg,
 }
 
 pub fn detect_transport() -> TransportMethod {
+    #[allow(unused)]
+    use targets::{EspUsbOtgId, EspUsbSerialJtagId};
     #[repr(C)]
     struct Uart {
         baud_rate: u32,
@@ -72,28 +66,13 @@ pub fn detect_transport() -> TransportMethod {
     extern "C" {
         fn esp_flasher_rom_get_uart() -> *const Uart;
     }
-    #[cfg(any(feature = "esp32c3", feature = "esp32c6", feature = "esp32h2"))]
-    const USB_SERIAL_JTAG: u8 = 3;
-    #[cfg(any(feature = "esp32s3"))]
-    const USB_SERIAL_JTAG: u8 = 4;
-
-    #[cfg(feature = "esp32s3")]
-    const USB_OTG: u8 = 3;
-    #[cfg(feature = "esp32s2")]
-    const USB_OTG: u8 = 2;
-
     let device = unsafe { esp_flasher_rom_get_uart() };
     let num = unsafe { (*device).buff_uart_no };
     match num {
-        #[cfg(any(
-            feature = "esp32c3",
-            feature = "esp32s3",
-            feature = "esp32c6",
-            feature = "esp32h2"
-        ))]
-        USB_SERIAL_JTAG => TransportMethod::UsbSerialJtag,
-        #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]
-        USB_OTG => TransportMethod::UsbOtg,
+        #[cfg(usb_device)]
+        target::USB_SERIAL_JTAG_ID => TransportMethod::UsbSerialJtag,
+        #[cfg(usb0)]
+        target::USB_OTG_ID => TransportMethod::UsbOtg,
         _ => TransportMethod::Uart,
     }
 }

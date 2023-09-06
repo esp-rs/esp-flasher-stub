@@ -88,4 +88,19 @@ fn main() {
         println!("cargo:rerun-if-changed=ld/ld/esp32s3_rom.x");
         println!("cargo:rustc-link-arg=-Tld/esp32s3_rom.x");
     }
+
+    emit_cfg();
+}
+
+fn emit_cfg() {
+    #[cfg(any(
+        feature = "esp32c3",
+        feature = "esp32s3",
+        feature = "esp32c6",
+        feature = "esp32h2"
+    ))]
+    println!("cargo:rustc-cfg=usb_device");
+
+    #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]
+    println!("cargo:rustc-cfg=usb0");
 }

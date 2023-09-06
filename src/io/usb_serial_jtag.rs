@@ -1,4 +1,4 @@
-use super::RX_QUEUE;
+use super::{UsbSerialJtagMarker, RX_QUEUE};
 use crate::{
     hal::{
         prelude::*,
@@ -17,6 +17,8 @@ impl InputIO for UsbSerialJtag<'_> {
         self.write_bytes(bytes).unwrap()
     }
 }
+
+impl UsbSerialJtagMarker for UsbSerialJtag<'_> {}
 
 #[interrupt]
 unsafe fn USB_DEVICE() {

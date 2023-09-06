@@ -399,3 +399,28 @@ impl EspCommon for Esp32c3 {}
 impl EspCommon for Esp32c2 {}
 impl EspCommon for Esp32c6 {}
 impl EspCommon for Esp32h2 {}
+
+pub trait EspUsbSerialJtagId {
+    /// The ID returned for USB_SERIAL_JTAG from `esp_flasher_rom_get_uart`
+    const USB_SERIAL_JTAG_ID: u8 = 3; // default for most chips is 3
+}
+
+impl EspUsbSerialJtagId for Esp32c3 {}
+impl EspUsbSerialJtagId for Esp32c6 {}
+impl EspUsbSerialJtagId for Esp32h2 {}
+impl EspUsbSerialJtagId for Esp32s3 {
+    const USB_SERIAL_JTAG_ID: u8 = 4;
+}
+
+pub trait EspUsbOtgId {
+    /// The ID returned for USB_OTG from `esp_flasher_rom_get_uart`
+    const USB_OTG_ID: u8;
+}
+
+impl EspUsbOtgId for Esp32s2 {
+    const USB_OTG_ID: u8 = 2;
+}
+
+impl EspUsbOtgId for Esp32s3 {
+    const USB_OTG_ID: u8 = 3;
+}
