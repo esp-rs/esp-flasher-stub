@@ -8,12 +8,34 @@ use flasher_stub::hal::uart::{
 };
 use flasher_stub::{
     hal::{clock::ClockControl, interrupt, peripherals, prelude::*, Uart, IO},
-    protocol::{InputIO, Stub},
+    io::Noop,
+    protocol::Stub,
     targets,
 };
 use static_cell::StaticCell;
 
 const MSG_BUFFER_SIZE: usize = targets::MAX_WRITE_BLOCK + 0x400;
+
+// TODO this sucks, but default generic parameters are not used when inference
+// fails, meaning that we _have_ to specifiy the types here Seems like work on this has stalled: https://github.com/rust-lang/rust/issues/27336, note that I tried the feature and it didn't work.
+#[cfg(not(any(usb_device, usb0)))]
+type Transport =
+    flasher_stub::io::Transport<&'static mut Uart<'static, crate::peripherals::UART0>, Noop, Noop>;
+#[cfg(all(usb_device, not(usb0)))]
+type Transport = flasher_stub::io::Transport<
+    &'static mut Uart<'static, crate::peripherals::UART0>,
+    &'static mut flasher_stub::hal::UsbSerialJtag<'static>,
+    Noop,
+>;
+#[cfg(all(not(usb_device), usb0))]
+type Transport =
+    flasher_stub::io::Transport<&'static mut Uart<'static, crate::peripherals::UART0>, Noop, Noop>; // TODO replace Noop with usb type later
+#[cfg(all(usb_device, usb0))]
+type Transport = flasher_stub::io::Transport<
+    &'static mut Uart<'static, crate::peripherals::UART0>,
+    &'static mut flasher_stub::hal::UsbSerialJtag<'static>,
+    Noop, // TODO replace Noop with usb type later
+>;
 
 #[flasher_stub::hal::entry]
 fn main() -> ! {
@@ -62,7 +84,7 @@ fn main() -> ! {
     let transport = flasher_stub::detect_transport();
     flasher_stub::dprintln!("Stub init! Transport detected: {:?}", transport);
 
-    let transport: &'static mut dyn InputIO = match transport {
+    let transport = match transport {
         flasher_stub::TransportMethod::Uart => {
             let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
 
@@ -76,14 +98,9 @@ fn main() -> ! {
 
             static mut TRANSPORT: StaticCell<Uart<'static, crate::peripherals::UART0>> =
                 StaticCell::new();
-            unsafe { TRANSPORT.init(serial) }
+            Transport::Uart(unsafe { TRANSPORT.init(serial) })
         }
-        #[cfg(any(
-            feature = "esp32c3",
-            feature = "esp32s3",
-            feature = "esp32c6",
-            feature = "esp32h2"
-        ))]
+        #[cfg(usb_device)]
         flasher_stub::TransportMethod::UsbSerialJtag => {
             let mut usb_serial = flasher_stub::hal::UsbSerialJtag::new(
                 peripherals.USB_DEVICE,
@@ -98,9 +115,9 @@ fn main() -> ! {
 
             static mut TRANSPORT: StaticCell<flasher_stub::hal::UsbSerialJtag<'static>> =
                 StaticCell::new();
-            unsafe { TRANSPORT.init(usb_serial) }
+            Transport::UsbSerialJtag(unsafe { TRANSPORT.init(usb_serial) })
         }
-        #[cfg(any(feature = "esp32s2", feature = "esp32s3"))]
+        #[cfg(usb0)]
         flasher_stub::TransportMethod::UsbOtg => unimplemented!(),
     };
 
