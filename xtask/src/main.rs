@@ -89,10 +89,10 @@ fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
             &format!("{}", chip.toolchain()),
             "build",
             "-Zbuild-std=core",
-            "-Zbuild-std-features=panic_immediate_abort",
+            // "-Zbuild-std-features=panic_immediate_abort",
             "--release",
             &format!("--target={}", chip.target()),
-            &format!("--features={chip}"),
+            &format!("--features={chip},dprint"),
         ])
         .args(["--message-format", "json-diagnostic-rendered-ansi"])
         .current_dir(workspace)

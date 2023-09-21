@@ -1,7 +1,7 @@
 use super::{UartMarker, RX_QUEUE};
 use crate::{
     hal::{peripherals::UART0, prelude::*, uart::Instance, Uart},
-    protocol::InputIO,
+    protocol::InputIO, dprintln,
 };
 
 impl<T: Instance> InputIO for Uart<'_, T> {
@@ -12,6 +12,7 @@ impl<T: Instance> InputIO for Uart<'_, T> {
 
     fn send(&mut self, bytes: &[u8]) {
         self.write_bytes(bytes).unwrap();
+        // crate::io::uart::nb::block!(self.flush()).unwrap();
     }
 }
 
@@ -19,8 +20,14 @@ impl<T: Instance> UartMarker for Uart<'_, T> {}
 
 #[interrupt]
 fn UART0() {
-    let uart = unsafe { &*UART0::ptr() };
+    flush();
+}
 
+pub fn flush() {
+    let uart = unsafe { &*UART0::ptr() };
+    
+    // dprintln!("Bytes in fifo: {}", UART0::get_rx_fifo_count());
+    // while UART0::get_rx_fifo_count() > 0 {
     while uart.status.read().rxfifo_cnt().bits() > 0 {
         let offset = if cfg!(feature = "esp32s2") {
             0x20C0_0000

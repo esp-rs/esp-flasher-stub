@@ -26,6 +26,12 @@ matches = "0.1.9"
 mockall = "0.11.3"
 mockall_double = "0.3.0"
 
+# [patch.crates-io]
+# esp32-hal = { optional = true, path = "/home/mabez/development/rust/embedded/hal/esp-hal/esp32-hal" }
+# esp-hal-common = { optional = true, path = "/home/mabez/development/rust/embedded/hal/esp-hal/esp-hal-common" }
+# # esp32-hal = { optional = true, git = "https://github.com/esp-rs/esp-hal", rev = "240b2057f68ffa127610927415301a1f100dada4" }
+# # esp-hal-common = { optional = true, git = "https://github.com/esp-rs/esp-hal", rev = "240b2057f68ffa127610927415301a1f100dada4" }
+
 [features]
 esp32 = ["esp32-hal"] 
 esp32s2 = ["esp32s2-hal"]
@@ -37,10 +43,11 @@ esp32c2 = ["esp32c2-hal"]
 dprint = []
 
 [profile.release]
-opt-level = "s" # temporary because of https://github.com/llvm/llvm-project/issues/57988
+opt-level = 1 # temporary because of https://github.com/llvm/llvm-project/issues/57988
+# opt-level = "z" # temporary because of https://github.com/llvm/llvm-project/issues/57988
 codegen-units = 1
 lto = true
-panic = "abort"
+# panic = "abort"
 debug = true
 
 [workspace]

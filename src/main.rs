@@ -47,19 +47,21 @@ fn main() -> ! {
     #[cfg(any(feature = "esp32c6", feature = "esp32h2"))]
     let mut system = peripherals.PCR.split();
 
-    #[cfg(any(feature = "esp32", feature = "esp32s2"))]
-    #[allow(unused)]
-    let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); // TODO: ESP32 and S2 only works with `boot_defauls` for some reason
+    // #[cfg(any(feature = "esp32", feature = "esp32s2"))]
+    // let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); //
+    // TODO: ESP32 and S2 only works with `boot_defauls` for some reason
 
-    #[cfg(any(
-        feature = "esp32c2",
-        feature = "esp32c3",
-        feature = "esp32h2",
-        feature = "esp32c6",
-        feature = "esp32s3"
-    ))]
-    #[allow(unused)]
+    // #[cfg(any(
+    //     feature = "esp32c2",
+    //     feature = "esp32c3",
+    //     feature = "esp32h2",
+    //     feature = "esp32c6",
+    //     feature = "esp32s3"
+    // ))]
     let clocks = ClockControl::max(system.clock_control).freeze();
+
+    // let delay = flasher_stub::hal::Delay::new(&clocks);
+    // delay.delay(10_000);
 
     #[allow(unused)]
     let io = IO::new(peripherals.GPIO, peripherals.IO_MUX);
@@ -86,10 +88,25 @@ fn main() -> ! {
 
     let transport = match transport {
         flasher_stub::TransportMethod::Uart => {
-            let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
+            // flasher_stub::io::uart::flush();
 
+            use flasher_stub::hal::gpio::*;
+            let mut serial = Uart::new_with_config(
+                peripherals.UART0,
+                Some(Config {
+                    baudrate: 115200,
+                    data_bits: DataBits::DataBits8,
+                    parity: Parity::ParityNone,
+                    stop_bits: StopBits::STOP1,
+                }),
+                None::<TxRxPins<'_, GpioPin<Output<PushPull>, 2>, GpioPin<Input<Floating>, 0>>>,
+                &clocks,
+                &mut system.peripheral_clock_control,
+            );
+
+            // serial.set_rx_fifo_full_threshold(1).unwrap();
+            serial.reset_rx_fifo_full_interrupt();
             serial.listen_rx_fifo_full();
-
             interrupt::enable(
                 peripherals::Interrupt::UART0,
                 interrupt::Priority::Priority1,
