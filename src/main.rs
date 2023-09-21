@@ -47,18 +47,6 @@ fn main() -> ! {
     #[cfg(any(feature = "esp32c6", feature = "esp32h2"))]
     let mut system = peripherals.PCR.split();
 
-    #[cfg(any(feature = "esp32", feature = "esp32s2"))]
-    #[allow(unused)]
-    let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); // TODO: ESP32 and S2 only works with `boot_defauls` for some reason
-
-    #[cfg(any(
-        feature = "esp32c2",
-        feature = "esp32c3",
-        feature = "esp32h2",
-        feature = "esp32c6",
-        feature = "esp32s3"
-    ))]
-    #[allow(unused)]
     let clocks = ClockControl::max(system.clock_control).freeze();
 
     #[allow(unused)]
@@ -86,8 +74,11 @@ fn main() -> ! {
 
     let transport = match transport {
         flasher_stub::TransportMethod::Uart => {
-            let mut serial = Uart::new(peripherals.UART0, &mut system.peripheral_clock_control);
-
+            let mut serial = Uart::new(
+                peripherals.UART0,
+                &clocks,
+                &mut system.peripheral_clock_control,
+            );
             serial.listen_rx_fifo_full();
 
             interrupt::enable(

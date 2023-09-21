@@ -26,6 +26,10 @@ matches = "0.1.9"
 mockall = "0.11.3"
 mockall_double = "0.3.0"
 
+[patch.crates-io]
+esp32-hal = { optional = true, git = "https://github.com/mabezdev/esp-hal", rev = "79549a2ab69e0ea1b4826ddf4b597d606fc72a29" }
+esp-hal-common = { optional = true, git = "https://github.com/mabezdev/esp-hal", rev = "79549a2ab69e0ea1b4826ddf4b597d606fc72a29" }
+
 [features]
 esp32 = ["esp32-hal"] 
 esp32s2 = ["esp32s2-hal"]
