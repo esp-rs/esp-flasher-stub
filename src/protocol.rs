@@ -164,7 +164,7 @@ impl<T: InputIO> Stub<T> {
 
         self.in_flash_mode = false;
 
-        if cmd.reboot {
+        if cmd.should_reboot() {
             self.send_response(response);
             self.target.delay_us(10_000);
             self.target.soft_reset();

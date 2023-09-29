@@ -89,7 +89,15 @@ pub struct DataCommand {
 #[repr(C, packed(1))]
 pub struct EndFlashCommand {
     pub base: CommandBase,
-    pub reboot: bool,
+    reboot: bool, // private to ensure should_reboot is used.
+}
+
+impl EndFlashCommand {
+    pub fn should_reboot(&self) -> bool {
+        // As per the logic here: https://github.com/espressif/esptool/blob/0a9caaf04cfde6fd97c785d4811f3fde09b1b71f/flasher_stub/stub_flasher.c#L402
+        // 0 means reboot, 1 means do nothing
+        !self.reboot
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
