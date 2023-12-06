@@ -5,13 +5,13 @@ edition = "2021"
 publish = false
 
 [dependencies]
-anyhow         = "1.0.71"
-cargo_metadata = "0.15.4"
-clap           = { version = "4.3.11", features = ["derive"] }
-env_logger     = "0.10.0"
-log            = "0.4"
-serde_json     = "1.0.100"
+anyhow         = "1.0.75"
+cargo_metadata = "0.18.1"
+clap           = { version = "4.4.11", features = ["derive"] }
+env_logger     = "0.10.1"
+log            = "0.4.20"
+serde_json     = "1.0.108"
 strum          = { version = "0.25.0", features = ["derive"] }
-xmas-elf       = "0.9.0"
-base64 = "0.21.2"
-toml = "0.7.6"
+xmas-elf       = "0.9.1"
+base64         = "0.21.5"
+toml           = "0.8.8"

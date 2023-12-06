@@ -27,8 +27,8 @@ enum Chip {
 impl Chip {
     pub fn toolchain(&self) -> &'static str {
         match self {
-            Chip::Esp32c2 | Chip::Esp32c3 | Chip::Esp32c6 | Chip::Esp32h2 => "+nightly",
             Chip::Esp32 | Chip::Esp32s2 | Chip::Esp32s3 => "+esp",
+            _ => "+nightly",
         }
     }
 
