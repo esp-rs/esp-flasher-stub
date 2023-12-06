@@ -7,5 +7,5 @@ REGION_ALIAS("RWDATA", DRAM);
 REGION_ALIAS("RWTEXT", IRAM);
 
 /* include linker script from esp-hal */
-INCLUDE bl-riscv-link.x
+INCLUDE esp32c2.x
 INCLUDE rom-functions.x

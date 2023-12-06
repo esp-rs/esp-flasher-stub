@@ -48,8 +48,11 @@ pub enum TransportMethod {
 }
 
 pub fn detect_transport() -> TransportMethod {
-    #[allow(unused)]
-    use targets::{EspUsbOtgId, EspUsbSerialJtagId};
+    #[cfg(usb0)]
+    use crate::targets::EspUsbOtgId as _;
+    #[cfg(usb_device)]
+    use crate::targets::EspUsbSerialJtagId as _;
+
     #[repr(C)]
     struct Uart {
         baud_rate: u32,
@@ -63,9 +66,11 @@ pub fn detect_transport() -> TransportMethod {
         rcv_state: u32,
         received: u32,
     }
+
     extern "C" {
         fn esp_flasher_rom_get_uart() -> *const Uart;
     }
+
     let device = unsafe { esp_flasher_rom_get_uart() };
     let num = unsafe { (*device).buff_uart_no };
     match num {

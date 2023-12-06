@@ -10,5 +10,5 @@ REGION_ALIAS("RTC_FAST_RWTEXT", RTC_FAST);
 REGION_ALIAS("RTC_FAST_RWDATA", RTC_FAST);
 
 /* include linker script from esp-hal */
-INCLUDE bl-riscv-link.x
+INCLUDE esp32h2.x
 INCLUDE rom-functions.x
