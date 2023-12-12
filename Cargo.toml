@@ -8,20 +8,20 @@ categories   = ["embedded", "no-std"]
 
 [dependencies]
 critical-section = "1.1.2"
-esp32-hal        = { version = "0.16.0", optional = true }
-esp32c2-hal      = { version = "0.11.0", optional = true }
-esp32c3-hal      = { version = "0.13.0", optional = true }
-esp32c6-hal      = { version = "0.6.0",  optional = true }
-esp32h2-hal      = { version = "0.4.0",  optional = true }
-esp32s2-hal      = { version = "0.13.0", optional = true }
-esp32s3-hal      = { version = "0.13.0", optional = true }
+esp32-hal        = { version = "0.17.0", optional = true }
+esp32c2-hal      = { version = "0.12.0", optional = true }
+esp32c3-hal      = { version = "0.14.0", optional = true }
+esp32c6-hal      = { version = "0.7.0",  optional = true }
+esp32h2-hal      = { version = "0.5.0",  optional = true }
+esp32s2-hal      = { version = "0.14.0", optional = true }
+esp32s3-hal      = { version = "0.14.0", optional = true }
 heapless         = { version = "0.8.0",  default-features = false }
 static_cell      = "2.0.0"
 
 [dev-dependencies]
 assert2        = "0.3.11"
 matches        = "0.1.10"
-mockall        = "0.11.4"
+mockall        = "0.12.0"
 mockall_double = "0.3.0"
 
 [features]
@@ -40,12 +40,3 @@ codegen-units = 1
 lto           = true
 panic         = "abort"
 debug         = true
-
-[patch.crates-io]
-esp32-hal   = { git = "https://github.com/esp-rs/esp-hal", rev = "df44c2a" }
-esp32s2-hal = { git = "https://github.com/esp-rs/esp-hal", rev = "df44c2a" }
-esp32s3-hal = { git = "https://github.com/esp-rs/esp-hal", rev = "df44c2a" }
-esp32c3-hal = { git = "https://github.com/esp-rs/esp-hal", rev = "df44c2a" }
-esp32c6-hal = { git = "https://github.com/esp-rs/esp-hal", rev = "df44c2a" }
-esp32h2-hal = { git = "https://github.com/esp-rs/esp-hal", rev = "df44c2a" }
-esp32c2-hal = { git = "https://github.com/esp-rs/esp-hal", rev = "df44c2a" }
