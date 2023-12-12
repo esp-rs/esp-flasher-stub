@@ -41,9 +41,6 @@ lto           = true
 panic         = "abort"
 debug         = true
 
-[workspace]
-members = ["xtask"]
-
 [patch.crates-io]
 esp32-hal   = { git = "https://github.com/esp-rs/esp-hal", rev = "df44c2a" }
 esp32s2-hal = { git = "https://github.com/esp-rs/esp-hal", rev = "df44c2a" }

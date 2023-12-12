@@ -14,9 +14,13 @@ target/
 .DS_Store
 *.swp
 
+# No need to track the `xtask` package's lockfile
+xtask/Cargo.lock
+
 # Ignore generated JSON & toml stub files
 *.json
 *.toml
+
 # Allow these toml files though
 !Cargo.toml
 !rustfmt.toml

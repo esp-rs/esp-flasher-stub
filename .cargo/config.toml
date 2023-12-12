@@ -1,6 +1,3 @@
-[alias]
-xtask = "run --package xtask --"
-
 [target.'cfg(target_arch = "riscv32")']
 rustflags = ["-C", "link-args=-Map=target/stub.map"]
 

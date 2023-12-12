@@ -8,11 +8,11 @@ use std::{
 use anyhow::{anyhow, bail, Result};
 use cargo_metadata::Message;
 use clap::{Parser, Subcommand, ValueEnum};
-use serde_json::json;
-use strum::Display;
+use serde::{Deserialize, Serialize};
+use strum::{Display, EnumIter, IntoEnumIterator};
 use xmas_elf::{sections::SectionHeader, ElfFile};
 
-#[derive(Debug, Clone, Copy, PartialEq, Display, ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Display, EnumIter, ValueEnum)]
 #[strum(serialize_all = "lowercase")]
 enum Chip {
     Esp32,
@@ -43,9 +43,16 @@ impl Chip {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Display, ValueEnum)]
+#[strum(serialize_all = "lowercase")]
+enum Format {
+    Json,
+    Toml,
+}
+
 #[derive(Debug, Parser)]
 struct Cli {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     command: Commands,
 }
 
@@ -53,13 +60,16 @@ struct Cli {
 enum Commands {
     /// Build the flasher stub for the specified chip(s)
     Build {
-        #[clap(value_enum)]
+        #[arg(value_enum, default_values_t = Chip::iter())]
         chips: Vec<Chip>,
     },
 
     /// Build the flasher stub for the specified chip(s) and convert it to JSON
     Wrap {
-        #[clap(value_enum)]
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+
+        #[arg(value_enum, default_values_t = Chip::iter())]
         chips: Vec<Chip>,
     },
 }
@@ -78,7 +88,9 @@ fn main() -> Result<()> {
         Commands::Build { chips } => chips
             .iter()
             .try_for_each(|chip| build(&workspace, chip).map(|_| ())),
-        Commands::Wrap { chips } => chips.iter().try_for_each(|chip| wrap(&workspace, chip)),
+        Commands::Wrap { chips, format } => chips
+            .iter()
+            .try_for_each(|chip| wrap(&workspace, chip, format)),
     }
 }
 
@@ -145,7 +157,16 @@ fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
     Ok(artifact_path)
 }
 
-fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
+#[derive(Debug, Deserialize, Serialize)]
+struct Stub {
+    entry: u64,
+    text: String,
+    text_start: u64,
+    data: String,
+    data_start: u64,
+}
+
+fn wrap(workspace: &Path, chip: &Chip, format: Option<Format>) -> Result<()> {
     use base64::engine::{general_purpose, Engine};
 
     // ordering here matters! should be in order of placement in RAM
@@ -174,23 +195,43 @@ fn wrap(workspace: &Path, chip: &Chip) -> Result<()> {
     let (data_start, data) = concat_sections(&elf, &data_sections);
     let data = general_purpose::STANDARD.encode(&data);
 
-    let stub = json!({
-        "entry": entry,
-        "text": text,
-        "text_start": text_start,
-        "data": data,
-        "data_start": data_start,
-    });
-
     log::info!("Total size of stub is {}bytes", text.len() + data.len());
 
+    let stub = Stub {
+        entry,
+        text,
+        text_start,
+        data,
+        data_start,
+    };
+
+    match format {
+        Some(Format::Json) => write_json(workspace, &chip, &stub)?,
+        Some(Format::Toml) => write_toml(workspace, &chip, &stub)?,
+        None => {
+            write_json(workspace, &chip, &stub)?;
+            write_toml(workspace, &chip, &stub)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn write_json(workspace: &Path, chip: &Chip, stub: &Stub) -> Result<()> {
     let stub_file = workspace.join(format!("{chip}.json"));
     let contents = serde_json::to_string(&stub)?;
+
+    log::info!("Writing JSON stub: {}", stub_file.display());
     fs::write(stub_file, &contents)?;
 
+    Ok(())
+}
+
+fn write_toml(workspace: &Path, chip: &Chip, stub: &Stub) -> Result<()> {
     let stub_file = workspace.join(format!("{chip}.toml"));
-    let stub: toml::Value = serde_json::from_str(&contents)?;
-    let contents = toml::to_string(&stub)?;
+    let contents = toml::to_string(stub)?;
+
+    log::info!("Writing TOML stub: {}", stub_file.display());
     fs::write(stub_file, contents)?;
 
     Ok(())
