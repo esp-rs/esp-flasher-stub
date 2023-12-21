@@ -32,7 +32,7 @@ fn UART0() {
         // the read _must_ be a word read so the hardware correctly detects the read and
         // pops the byte from the fifo cast the result to a u8, as only the
         // first byte contains the data
-        let data = unsafe { uart.fifo().as_ptr().offset(offset).read() } as u8;
+        let data = unsafe { uart.fifo().as_ptr().offset(offset / 4).read() } as u8;
         unsafe { RX_QUEUE.push_back(data).unwrap() };
     }
 
