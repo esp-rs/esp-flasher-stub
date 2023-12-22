@@ -17,14 +17,14 @@ impl DebugLog {
     // https://github.com/rust-lang/rust-clippy/issues/6466
     #[allow(clippy::useless_conversion)]
     pub fn count(&mut self) -> u16 {
-        unsafe { (*UART1::ptr()).status.read().txfifo_cnt().bits().into() }
+        unsafe { (*UART1::ptr()).status().read().txfifo_cnt().bits().into() }
     }
 
     fn write(&mut self, word: u8) -> nb::Result<(), Error> {
         if self.count() < 128 {
             unsafe {
                 (*UART1::ptr())
-                    .fifo
+                    .fifo()
                     .write(|w| w.rxfifo_rd_byte().bits(word))
             };
             Ok(())

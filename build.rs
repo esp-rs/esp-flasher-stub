@@ -95,9 +95,9 @@ fn main() {
 fn emit_cfg() {
     #[cfg(any(
         feature = "esp32c3",
-        feature = "esp32s3",
         feature = "esp32c6",
-        feature = "esp32h2"
+        feature = "esp32h2",
+        feature = "esp32s3",
     ))]
     println!("cargo:rustc-cfg=usb_device");
 

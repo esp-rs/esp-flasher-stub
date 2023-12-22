@@ -21,7 +21,7 @@ impl<T: Instance> UartMarker for Uart<'_, T> {}
 fn UART0() {
     let uart = unsafe { &*UART0::ptr() };
 
-    while uart.status.read().rxfifo_cnt().bits() > 0 {
+    while uart.status().read().rxfifo_cnt().bits() > 0 {
         let offset = if cfg!(feature = "esp32s2") {
             0x20C0_0000
         } else {
@@ -32,9 +32,9 @@ fn UART0() {
         // the read _must_ be a word read so the hardware correctly detects the read and
         // pops the byte from the fifo cast the result to a u8, as only the
         // first byte contains the data
-        let data = unsafe { uart.fifo.as_ptr().offset(offset).read() } as u8;
+        let data = unsafe { uart.fifo().as_ptr().offset(offset / 4).read() } as u8;
         unsafe { RX_QUEUE.push_back(data).unwrap() };
     }
 
-    uart.int_clr.write(|w| w.rxfifo_full_int_clr().set_bit());
+    uart.int_clr().write(|w| w.rxfifo_full_int_clr().set_bit());
 }
