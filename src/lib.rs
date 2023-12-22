@@ -1,35 +1,20 @@
 #![no_std]
 
-// Re-export the correct HAL based on which feature is active
-#[cfg(feature = "esp32")]
-pub use esp32_hal as hal;
-#[cfg(feature = "esp32c2")]
-pub use esp32c2_hal as hal;
-#[cfg(feature = "esp32c3")]
-pub use esp32c3_hal as hal;
-#[cfg(feature = "esp32c6")]
-pub use esp32c6_hal as hal;
-#[cfg(feature = "esp32h2")]
-pub use esp32h2_hal as hal;
-#[cfg(feature = "esp32s2")]
-pub use esp32s2_hal as hal;
-#[cfg(feature = "esp32s3")]
-pub use esp32s3_hal as hal;
 // Re-export the correct target based on which feature is active
 #[cfg(feature = "esp32")]
-pub use targets::Esp32 as target;
+pub use targets::Esp32 as Target;
 #[cfg(feature = "esp32c2")]
-pub use targets::Esp32c2 as target;
+pub use targets::Esp32c2 as Target;
 #[cfg(feature = "esp32c3")]
-pub use targets::Esp32c3 as target;
+pub use targets::Esp32c3 as Target;
 #[cfg(feature = "esp32c6")]
-pub use targets::Esp32c6 as target;
+pub use targets::Esp32c6 as Target;
 #[cfg(feature = "esp32h2")]
-pub use targets::Esp32h2 as target;
+pub use targets::Esp32h2 as Target;
 #[cfg(feature = "esp32s2")]
-pub use targets::Esp32s2 as target;
+pub use targets::Esp32s2 as Target;
 #[cfg(feature = "esp32s3")]
-pub use targets::Esp32s3 as target;
+pub use targets::Esp32s3 as Target;
 
 pub mod commands;
 pub mod dprint;
@@ -37,6 +22,24 @@ pub mod io;
 pub mod miniz_types;
 pub mod protocol;
 pub mod targets;
+
+// Re-export the correct HAL based on which feature is active
+pub mod hal {
+    #[cfg(feature = "esp32")]
+    pub use esp32_hal::*;
+    #[cfg(feature = "esp32c2")]
+    pub use esp32c2_hal::*;
+    #[cfg(feature = "esp32c3")]
+    pub use esp32c3_hal::*;
+    #[cfg(feature = "esp32c6")]
+    pub use esp32c6_hal::*;
+    #[cfg(feature = "esp32h2")]
+    pub use esp32h2_hal::*;
+    #[cfg(feature = "esp32s2")]
+    pub use esp32s2_hal::*;
+    #[cfg(feature = "esp32s3")]
+    pub use esp32s3_hal::*;
+}
 
 #[derive(Debug)]
 pub enum TransportMethod {
@@ -75,9 +78,9 @@ pub fn detect_transport() -> TransportMethod {
     let num = unsafe { (*device).buff_uart_no };
     match num {
         #[cfg(usb_device)]
-        target::USB_SERIAL_JTAG_ID => TransportMethod::UsbSerialJtag,
+        Target::USB_SERIAL_JTAG_ID => TransportMethod::UsbSerialJtag,
         #[cfg(usb0)]
-        target::USB_OTG_ID => TransportMethod::UsbOtg,
+        Target::USB_OTG_ID => TransportMethod::UsbOtg,
         _ => TransportMethod::Uart,
     }
 }
