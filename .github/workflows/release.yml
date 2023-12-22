@@ -37,7 +37,7 @@ jobs:
 
       - name: build & wrap (${{ matrix.build.chip }})
         working-directory: xtask
-        run: cargo xtask wrap ${{ matrix.build.chip }}
+        run: cargo run -- wrap ${{ matrix.build.chip }}
       - uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ env.GITHUB_TOKEN }}
@@ -72,7 +72,7 @@ jobs:
 
       - name: build & wrap (${{ matrix.build.chip }})
         working-directory: xtask
-        run: cargo xtask wrap ${{ matrix.build.chip }}
+        run: cargo run -- wrap ${{ matrix.build.chip }}
       - uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ env.GITHUB_TOKEN }}
