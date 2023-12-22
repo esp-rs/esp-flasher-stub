@@ -1,13 +1,18 @@
 use super::{UartMarker, RX_QUEUE};
 use crate::{
-    hal::{peripherals::UART0, prelude::*, uart::Instance, Uart},
+    hal::{macros::interrupt, peripherals::UART0, uart::Instance, Uart},
     protocol::InputIO,
 };
 
-impl<T: Instance> InputIO for Uart<'_, T> {
+impl<T> InputIO for Uart<'_, T>
+where
+    T: Instance,
+{
     fn recv(&mut self) -> u8 {
-        unsafe { while critical_section::with(|_| RX_QUEUE.is_empty()) {} }
-        unsafe { critical_section::with(|_| RX_QUEUE.pop_front().unwrap()) }
+        unsafe {
+            while critical_section::with(|_| RX_QUEUE.is_empty()) {}
+            critical_section::with(|_| RX_QUEUE.pop_front().unwrap())
+        }
     }
 
     fn send(&mut self, bytes: &[u8]) {
@@ -15,7 +20,7 @@ impl<T: Instance> InputIO for Uart<'_, T> {
     }
 }
 
-impl<T: Instance> UartMarker for Uart<'_, T> {}
+impl<T> UartMarker for Uart<'_, T> where T: Instance {}
 
 #[interrupt]
 fn UART0() {
