@@ -42,7 +42,7 @@ pub mod hal {
 }
 
 use self::{
-    hal::{Uart, peripherals::UART0},
+    hal::{peripherals::UART0, Uart},
     io::Noop,
 };
 
