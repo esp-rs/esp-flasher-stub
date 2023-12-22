@@ -1,7 +1,8 @@
 use super::{UsbSerialJtagMarker, RX_QUEUE};
 use crate::{
     hal::{
-        prelude::*,
+        peripherals::USB_DEVICE,
+        prelude::interrupt,
         usb_serial_jtag::{Instance, UsbSerialJtag},
     },
     protocol::InputIO,
@@ -9,8 +10,10 @@ use crate::{
 
 impl InputIO for UsbSerialJtag<'_> {
     fn recv(&mut self) -> u8 {
-        unsafe { while critical_section::with(|_| RX_QUEUE.is_empty()) {} }
-        unsafe { critical_section::with(|_| RX_QUEUE.pop_front().unwrap()) }
+        unsafe {
+            while critical_section::with(|_| RX_QUEUE.is_empty()) {}
+            critical_section::with(|_| RX_QUEUE.pop_front().unwrap())
+        }
     }
 
     fn send(&mut self, bytes: &[u8]) {
@@ -22,7 +25,7 @@ impl UsbSerialJtagMarker for UsbSerialJtag<'_> {}
 
 #[interrupt]
 unsafe fn USB_DEVICE() {
-    let usj = crate::hal::peripherals::USB_DEVICE::steal();
+    let usj = USB_DEVICE::steal();
     let reg_block = usj.register_block();
 
     while reg_block

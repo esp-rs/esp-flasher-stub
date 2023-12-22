@@ -43,7 +43,7 @@ pub struct tinfl_decompressor {
     counter: u32,
     num_extra: u32,
     table_sizes: [u32; TINFL_MAX_HUFF_TABLES],
-    bit_buf: u64,
+    bit_buf: u32,
     dist_from_out_buf_start: u32,
     tables: [tinfl_huff_table; TINFL_MAX_HUFF_TABLES],
     raw_header: [u8; 4],

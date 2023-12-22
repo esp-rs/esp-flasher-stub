@@ -1,7 +1,5 @@
 use core::marker::PhantomData;
 
-use heapless::Deque;
-
 use crate::protocol::InputIO;
 
 pub mod uart;
@@ -10,11 +8,15 @@ pub mod usb_serial_jtag;
 
 const RX_QUEUE_SIZE: usize = crate::targets::MAX_WRITE_BLOCK + 0x400;
 
-static mut RX_QUEUE: Deque<u8, RX_QUEUE_SIZE> = Deque::new();
+static mut RX_QUEUE: heapless::Deque<u8, RX_QUEUE_SIZE> = heapless::Deque::new();
 
 trait UartMarker: InputIO {}
 trait UsbSerialJtagMarker: InputIO {}
 trait UsbOtgMarker: InputIO {}
+
+impl<T> UartMarker for &mut T where T: UartMarker {}
+impl<T> UsbSerialJtagMarker for &mut T where T: UsbSerialJtagMarker {}
+impl<T> UsbOtgMarker for &mut T where T: UsbOtgMarker {}
 
 #[non_exhaustive]
 pub enum Transport<S, J, U> {
@@ -38,7 +40,7 @@ where
             Transport::Uart(s) => s.recv(),
             #[cfg(usb_device)]
             Transport::UsbSerialJtag(j) => j.recv(),
-            _ => todo!(),
+            _ => unimplemented!(),
         }
     }
 
@@ -47,7 +49,7 @@ where
             Transport::Uart(s) => s.send(data),
             #[cfg(usb_device)]
             Transport::UsbSerialJtag(j) => j.send(data),
-            _ => todo!(),
+            _ => unimplemented!(),
         }
     }
 }
@@ -67,7 +69,3 @@ impl InputIO for Noop {
 impl UartMarker for Noop {}
 impl UsbSerialJtagMarker for Noop {}
 impl UsbOtgMarker for Noop {}
-
-impl<T: UartMarker> UartMarker for &mut T {}
-impl<T: UsbSerialJtagMarker> UsbSerialJtagMarker for &mut T {}
-impl<T: UsbOtgMarker> UsbOtgMarker for &mut T {}

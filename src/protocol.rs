@@ -40,7 +40,7 @@ pub struct Stub<T> {
     decompressor: tinfl_decompressor,
     last_error: Option<Error>,
     in_flash_mode: bool,
-    target: crate::target,
+    target: crate::Target,
 }
 
 fn slice_to_struct<T: Sized + Copy>(slice: &[u8]) -> Result<T, Error> {
