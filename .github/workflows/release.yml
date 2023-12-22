@@ -36,6 +36,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: build & wrap (${{ matrix.build.chip }})
+        working-directory: xtask
         run: cargo xtask wrap ${{ matrix.build.chip }}
       - uses: svenstaro/upload-release-action@v2
         with:
@@ -70,6 +71,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: build & wrap (${{ matrix.build.chip }})
+        working-directory: xtask
         run: cargo xtask wrap ${{ matrix.build.chip }}
       - uses: svenstaro/upload-release-action@v2
         with:
