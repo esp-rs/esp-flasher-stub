@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let arch = match chip {
         "esp32" | "esp32s2" | "esp32s3" => "xtensa",
-        _ => "riscv32",
+        _ => "riscv",
     };
 
     // Define configuration symbols:
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // The RISC-V devices additionally require the `hal-defaults.x` linker
     // script from `esp-hal`, to avoid interrupt-related linker errors:
 
-    if arch == "riscv32" {
+    if arch == "riscv" {
         println!("cargo:rustc-link-arg=-Thal-defaults.x");
     }
 
