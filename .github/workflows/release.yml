@@ -9,44 +9,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  # --------------------------------------------------------------------------
-  # Release (RISC-V)
-
-  release-riscv:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        build:
-          [
-            { chip: "esp32c2", target: "riscv32imc-unknown-none-elf" },
-            { chip: "esp32c3", target: "riscv32imc-unknown-none-elf" },
-            { chip: "esp32c6", target: "riscv32imac-unknown-none-elf" },
-            { chip: "esp32h2", target: "riscv32imac-unknown-none-elf" },
-          ]
-
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@v1
-        with:
-          target: ${{ matrix.build.target }}
-          toolchain: nightly
-          components: rust-src
-      - uses: Swatinem/rust-cache@v2
-
-      - name: build & wrap (${{ matrix.build.chip }})
-        run: cargo xtask wrap ${{ matrix.build.chip }}
-      - uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ env.GITHUB_TOKEN }}
-          file: "${{ matrix.build.chip }}.json"
-          tag: ${{ github.ref }}
-
-  # --------------------------------------------------------------------------
-  # Release (Xtensa)
-
-  release-xtensa:
+  release:
     runs-on: ubuntu-latest
 
     strategy:
@@ -55,13 +18,26 @@ jobs:
         build:
           [
             { chip: "esp32", target: "xtensa-esp32-none-elf" },
+            { chip: "esp32c2", target: "riscv32imc-unknown-none-elf" },
+            { chip: "esp32c3", target: "riscv32imc-unknown-none-elf" },
+            { chip: "esp32c6", target: "riscv32imac-unknown-none-elf" },
+            { chip: "esp32h2", target: "riscv32imac-unknown-none-elf" },
             { chip: "esp32s2", target: "xtensa-esp32s2-none-elf" },
             { chip: "esp32s3", target: "xtensa-esp32s3-none-elf" },
           ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      # RISC-V toolchain
+      - uses: dtolnay/rust-toolchain@v1
+        if: matrix.build.chip != 'esp32' && matrix.build.chip != 'esp32s2' && matrix.build.chip != 'esp32s3'
+        with:
+          target: ${{ matrix.build.target }}
+          toolchain: nightly
+          components: rust-src
+      # Xtensa toolchain
       - uses: esp-rs/xtensa-toolchain@v1.5
+        if: matrix.build.chip == 'esp32' || matrix.build.chip == 'esp32s2' || matrix.build.chip == 'esp32s3'
         with:
           default: true
           ldproxy: false
@@ -69,9 +45,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: build & wrap (${{ matrix.build.chip }})
-        run: cargo xtask wrap ${{ matrix.build.chip }}
+        working-directory: xtask
+        run: cargo run -- wrap ${{ matrix.build.chip }}
       - uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ env.GITHUB_TOKEN }}
-          file: "${{ matrix.build.chip }}.json"
+          file: "${{ matrix.build.chip }}.*"
+          file_glob: true
           tag: ${{ github.ref }}
