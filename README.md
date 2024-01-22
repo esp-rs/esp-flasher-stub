@@ -6,11 +6,11 @@
 
 Rust implementation of flasher stub located in [esptool](https://github.com/espressif/esptool/).
 
-Supports the ESP32, ESP32-C2/C3/C6, ESP32-H2, and ESP32-S2/S3. Currently `UART` and `USB Serial JTAG` are the supported transport modes, and support for other modes is planned.
+Supports the ESP32, ESP32-C2/C3/C6, ESP32-H2, and ESP32-S2/S3. Currently, `UART` and `USB Serial JTAG` are the supported transport modes, and support for other modes is planned.
 
 ## Quickstart
 
-To ease the building process we have included a `build` subcommand in the `xtask` package which will apply all the appropriate build configuration for one or more devices:
+To ease the building process we have included a `build` subcommand in the `xtask` package which will apply all the appropriate build configurations for one or more devices:
 
 ```bash
 cd xtask/
@@ -43,7 +43,7 @@ cargo +esp build --release --features=esp32s2 --target=xtensa-esp32s2-none-elf
 cargo +esp build --release --features=esp32s3 --target=xtensa-esp32s3-none-elf
 ```
 
-In order to generate the JSON stub files for one or more devices, you can again use the `xtask` package:
+In order to generate the JSON and TOML stub files for one or more devices, you can again use the `xtask` package:
 
 ```bash
 cd xtask/
@@ -62,7 +62,7 @@ In order to run `test_esptool.py` follow steps below:
   ```
   git clone https://github.com/espressif/esptool
   ```
-- Copy the stub JSON files into esptool installation. You can use the following one-liner:
+- Copy the stub JSON files into `esptool` installation. You can use the following one-liner:
   ```bash
   for n in esp*.json; do cp $n $ESPTOOL_PATH/esptool/targets/stub_flasher/stub_flasher_${n#esp}; done
   ```
@@ -75,13 +75,24 @@ In order to run `test_esptool.py` follow steps below:
 
 ## Debug logs
 
-In order to use debug logs you have to build the project with `dprint` feature, for example:
+In order to add debug logs, you can use the `--dprint` flag available in the `xtask` package for `build` and `wrap` commands:
+```bash
+cd xtask/
+cargo run -- wrap esp32c3 --dprint
+cargo run -- build esp32 esp32s2 esp32s3 --dprint
+```
+
+In order to add debug logs when building the flasher stub manually you have to build the project with `dprint` feature, for example:
 
 ```bash
 cargo build --release --target=riscv32imc-unknown-none-elf --features=esp32c3,dprint
 ```
 
-Then you can view logs using, for example `screen`:
+This will print `esp-flasher-stub` debug messages using `UART1`. By default, `esp-flasher-stub` uses the following pins:
+- TX: GPIO 2
+- RX: GPIO 0
+
+Then you can view logs using, for example, `screen`:
 
 ```bash
 screen /dev/ttyUSB2 115200
