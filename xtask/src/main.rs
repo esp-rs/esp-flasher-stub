@@ -62,6 +62,9 @@ enum Commands {
     Build {
         #[arg(value_enum, default_values_t = Chip::iter())]
         chips: Vec<Chip>,
+
+        #[arg(long)]
+        dprint: bool,
     },
 
     /// Build the flasher stub for the specified chip(s) and convert it to JSON
@@ -71,6 +74,9 @@ enum Commands {
 
         #[arg(value_enum, default_values_t = Chip::iter())]
         chips: Vec<Chip>,
+
+        #[arg(long)]
+        dprint: bool,
     },
 }
 
@@ -85,17 +91,26 @@ fn main() -> Result<()> {
     let workspace = workspace.parent().unwrap().canonicalize()?;
 
     match Cli::parse().command {
-        Commands::Build { chips } => chips
+        Commands::Build { chips, dprint } => chips
             .iter()
-            .try_for_each(|chip| build(&workspace, chip).map(|_| ())),
-        Commands::Wrap { chips, format } => chips
+            .try_for_each(|chip| build(&workspace, chip, dprint).map(|_| ())),
+        Commands::Wrap {
+            chips,
+            format,
+            dprint,
+        } => chips
             .iter()
-            .try_for_each(|chip| wrap(&workspace, chip, format)),
+            .try_for_each(|chip| wrap(&workspace, chip, dprint, format)),
     }
 }
 
-fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
+fn build(workspace: &Path, chip: &Chip, dprint: bool) -> Result<PathBuf> {
     // Invoke the 'cargo build' command, passing our list of arguments.
+    let features = if dprint {
+        format!("--features={chip},dprint")
+    } else {
+        format!("--features={chip}")
+    };
     let output = Command::new("cargo")
         .args([
             &format!("{}", chip.toolchain()),
@@ -104,7 +119,7 @@ fn build(workspace: &Path, chip: &Chip) -> Result<PathBuf> {
             "-Zbuild-std-features=panic_immediate_abort",
             "--release",
             &format!("--target={}", chip.target()),
-            &format!("--features={chip}"),
+            &features,
         ])
         .args(["--message-format", "json-diagnostic-rendered-ansi"])
         .current_dir(workspace)
@@ -166,7 +181,7 @@ struct Stub {
     data_start: u64,
 }
 
-fn wrap(workspace: &Path, chip: &Chip, format: Option<Format>) -> Result<()> {
+fn wrap(workspace: &Path, chip: &Chip, dprint: bool, format: Option<Format>) -> Result<()> {
     use base64::engine::{general_purpose, Engine};
 
     // ordering here matters! should be in order of placement in RAM
@@ -182,7 +197,7 @@ fn wrap(workspace: &Path, chip: &Chip, format: Option<Format>) -> Result<()> {
     ];
     let data_sections = [".rodata", ".data"];
 
-    let artifact_path = build(workspace, chip)?;
+    let artifact_path = build(workspace, chip, dprint)?;
 
     let elf_data = fs::read(artifact_path)?;
     let elf = ElfFile::new(&elf_data).unwrap();
