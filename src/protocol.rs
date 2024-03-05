@@ -446,9 +446,9 @@ impl<T: InputIO> Stub<T> {
             ChangeBaudrate => {
                 let baud: ChangeBaudrateCommand = slice_to_struct(payload)?;
                 self.send_response(response);
-                self.target.delay_us(10_000); // Wait for response to be transfered
+                self.target.delay_us(15_000); // Wait for response to be transfered
                 self.target.change_baudrate(baud.old, baud.new);
-                self.send_greeting();
+                self.target.delay_us(1_000);
                 response_sent = true;
             }
             EraseFlash => self.target.erase_flash()?,
