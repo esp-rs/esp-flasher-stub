@@ -1,4 +1,4 @@
-use core::{cmp::min, mem::size_of, slice};
+use core::{cmp::min, mem::size_of, ptr::addr_of_mut, slice};
 
 use slip::*;
 
@@ -266,7 +266,7 @@ impl<T: InputIO> Stub<T> {
         static mut DECOMPRESS_INDEX: usize = 0;
 
         let mut out_index = unsafe { DECOMPRESS_INDEX };
-        let out_buf = unsafe { &mut DECOMPRESS_BUF };
+        let out_buf = unsafe { &mut *addr_of_mut!(DECOMPRESS_BUF) };
         let mut in_index = 0;
         let mut length = data.len();
         let mut status = NeedsMoreInput;
@@ -446,9 +446,9 @@ impl<T: InputIO> Stub<T> {
             ChangeBaudrate => {
                 let baud: ChangeBaudrateCommand = slice_to_struct(payload)?;
                 self.send_response(response);
-                self.target.delay_us(10_000); // Wait for response to be transfered
+                self.target.delay_us(15_000); // Wait for response to be transfered
                 self.target.change_baudrate(baud.old, baud.new);
-                self.send_greeting();
+                self.target.delay_us(1_000);
                 response_sent = true;
             }
             EraseFlash => self.target.erase_flash()?,

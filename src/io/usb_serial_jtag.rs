@@ -25,8 +25,7 @@ impl UsbSerialJtagMarker for UsbSerialJtag<'_> {}
 
 #[interrupt]
 unsafe fn USB_DEVICE() {
-    let usj = USB_DEVICE::steal();
-    let reg_block = usj.register_block();
+    let reg_block = USB_DEVICE::register_block();
 
     while reg_block
         .ep1_conf()
