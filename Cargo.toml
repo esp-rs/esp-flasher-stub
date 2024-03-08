@@ -8,7 +8,7 @@ categories   = ["embedded", "no-std"]
 
 [dependencies]
 critical-section = "1.1.2"
-esp-hal = { git = "https://github.com/esp-rs/esp-hal" }
+esp-hal = { version = "0.16.0" }
 heapless         = { version = "0.8.0",  default-features = false }
 static_cell      = "2.0.0"
 
