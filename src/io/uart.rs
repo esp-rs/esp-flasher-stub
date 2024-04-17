@@ -1,10 +1,15 @@
 use super::{UartMarker, RX_QUEUE};
 use crate::{
-    hal::{macros::interrupt, peripherals::UART0, uart::Instance, Uart},
+    hal::{
+        peripherals::UART0,
+        prelude::handler,
+        uart::{Instance, Uart},
+        Blocking,
+    },
     protocol::InputIO,
 };
 
-impl<T> InputIO for Uart<'_, T>
+impl<T> InputIO for Uart<'_, T, Blocking>
 where
     T: Instance,
 {
@@ -20,10 +25,10 @@ where
     }
 }
 
-impl<T> UartMarker for Uart<'_, T> where T: Instance {}
+impl<T> UartMarker for Uart<'_, T, Blocking> where T: Instance {}
 
-#[interrupt]
-fn UART0() {
+#[handler]
+pub fn uart0_hanlder() {
     let uart = unsafe { &*UART0::ptr() };
 
     while uart.status().read().rxfifo_cnt().bits() > 0 {
@@ -41,5 +46,5 @@ fn UART0() {
         unsafe { RX_QUEUE.push_back(data).unwrap() };
     }
 
-    uart.int_clr().write(|w| w.rxfifo_full_int_clr().set_bit());
+    uart.int_clr().write(|w| w.rxfifo_full().clear_bit_by_one());
 }

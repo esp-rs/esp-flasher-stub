@@ -26,7 +26,7 @@ pub mod targets;
 pub use esp_hal as hal;
 
 use self::{
-    hal::{peripherals::UART0, Uart},
+    hal::{peripherals::UART0, uart::Uart, Blocking},
     io::Noop,
 };
 
@@ -80,21 +80,21 @@ impl TransportMethod {
 // TODO this sucks, but default generic parameters are not used when inference
 // fails, meaning that we _have_ to specifiy the types here Seems like work on this has stalled: https://github.com/rust-lang/rust/issues/27336, note that I tried the feature and it didn't work.
 #[cfg(not(any(usb_device, usb0)))]
-pub type Transport = io::Transport<&'static mut Uart<'static, UART0>, Noop, Noop>;
+pub type Transport = io::Transport<&'static mut Uart<'static, UART0, Blocking>, Noop, Noop>;
 
 #[cfg(all(usb_device, not(usb0)))]
 pub type Transport = io::Transport<
-    &'static mut Uart<'static, UART0>,
-    &'static mut crate::hal::UsbSerialJtag<'static>,
+    &'static mut Uart<'static, UART0, Blocking>,
+    &'static mut crate::hal::usb_serial_jtag::UsbSerialJtag<'static, Blocking>,
     Noop,
 >;
 
 #[cfg(all(not(usb_device), usb0))]
-pub type Transport = io::Transport<&'static mut Uart<'static, UART0>, Noop, Noop>; // TODO replace Noop with usb type later
+pub type Transport = io::Transport<&'static mut Uart<'static, UART0, Blocking>, Noop, Noop>; // TODO replace Noop with usb type later
 
 #[cfg(all(usb_device, usb0))]
 pub type Transport = io::Transport<
-    &'static mut Uart<'static, UART0>,
-    &'static mut crate::hal::UsbSerialJtag<'static>,
+    &'static mut Uart<'static, UART0, Blocking>,
+    &'static mut crate::hal::usb_serial_jtag::UsbSerialJtag<'static, Blocking>,
     Noop, // TODO replace Noop with usb type later
 >;
