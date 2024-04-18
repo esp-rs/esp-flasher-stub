@@ -111,6 +111,7 @@ fn transport_uart(uart0: peripherals::UART0, clocks: &Clocks<'_>) -> Transport {
         clocks,
         Some(flasher_stub::io::uart::uart0_hanlder),
     );
+
     serial.listen_rx_fifo_full();
 
     static mut TRANSPORT: StaticCell<Uart<'static, peripherals::UART0, Blocking>> =

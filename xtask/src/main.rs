@@ -113,7 +113,7 @@ fn build(workspace: &Path, chip: &Chip, dprint: bool) -> Result<PathBuf> {
     };
     let output = Command::new("cargo")
         .args([
-            &format!("{}", chip.toolchain()),
+            chip.toolchain(),
             "build",
             "-Zbuild-std=core",
             "-Zbuild-std-features=panic_immediate_abort",
@@ -205,10 +205,10 @@ fn wrap(workspace: &Path, chip: &Chip, dprint: bool, format: Option<Format>) -> 
     let entry = elf.header.pt2.entry_point();
 
     let (text_start, text) = concat_sections(&elf, &text_sections);
-    let text = general_purpose::STANDARD.encode(&text);
+    let text = general_purpose::STANDARD.encode(text);
 
     let (data_start, data) = concat_sections(&elf, &data_sections);
-    let data = general_purpose::STANDARD.encode(&data);
+    let data = general_purpose::STANDARD.encode(data);
 
     log::info!("Total size of stub is {}bytes", text.len() + data.len());
 
@@ -221,11 +221,11 @@ fn wrap(workspace: &Path, chip: &Chip, dprint: bool, format: Option<Format>) -> 
     };
 
     match format {
-        Some(Format::Json) => write_json(workspace, &chip, &stub)?,
-        Some(Format::Toml) => write_toml(workspace, &chip, &stub)?,
+        Some(Format::Json) => write_json(workspace, chip, &stub)?,
+        Some(Format::Toml) => write_toml(workspace, chip, &stub)?,
         None => {
-            write_json(workspace, &chip, &stub)?;
-            write_toml(workspace, &chip, &stub)?;
+            write_json(workspace, chip, &stub)?;
+            write_toml(workspace, chip, &stub)?;
         }
     }
 
@@ -237,7 +237,7 @@ fn write_json(workspace: &Path, chip: &Chip, stub: &Stub) -> Result<()> {
     let contents = serde_json::to_string(&stub)?;
 
     log::info!("Writing JSON stub: {}", stub_file.display());
-    fs::write(stub_file, &contents)?;
+    fs::write(stub_file, contents)?;
 
     Ok(())
 }
@@ -256,9 +256,7 @@ fn exit_with_process_status(status: ExitStatus) -> ! {
     #[cfg(unix)]
     let code = {
         use std::os::unix::process::ExitStatusExt;
-        let code = status.code().or_else(|| status.signal()).unwrap_or(1);
-
-        code
+        status.code().or_else(|| status.signal()).unwrap_or(1)
     };
 
     #[cfg(not(unix))]
@@ -274,7 +272,7 @@ fn concat_sections(elf: &ElfFile, list: &[&str]) -> (u64, Vec<u8>) {
     let sections: Vec<SectionHeader> = list
         .iter()
         .filter_map(|name| elf.find_section_by_name(name))
-        .filter(|s| s.raw_data(&elf).len() != 0)
+        .filter(|s| !s.raw_data(elf).is_empty())
         .collect();
 
     for (i, section) in sections.iter().enumerate() {
@@ -283,7 +281,7 @@ fn concat_sections(elf: &ElfFile, list: &[&str]) -> (u64, Vec<u8>) {
             data_start = section.address();
             log::debug!("Found start: 0x{:08X}", data_start)
         }
-        let mut data_data = section.raw_data(&elf).to_vec();
+        let mut data_data = section.raw_data(elf).to_vec();
         let padding = if let Some(next) = next_t {
             assert!(
                 section.address() < next.address(),
@@ -303,7 +301,7 @@ fn concat_sections(elf: &ElfFile, list: &[&str]) -> (u64, Vec<u8>) {
         } else {
             0
         };
-        data_data.extend(iter::repeat('\0' as u8).take(padding));
+        data_data.extend(iter::repeat(b'\0').take(padding));
         data.extend(&data_data);
     }
 
