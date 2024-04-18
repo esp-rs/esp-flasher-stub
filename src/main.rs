@@ -97,7 +97,7 @@ fn main() -> ! {
 
 // Initialize the UART0 peripheral as the `Transport`.
 fn transport_uart(uart0: peripherals::UART0, clocks: &Clocks<'_>) -> Transport {
-    let mut serial = Uart::new(uart0, &clocks);
+    let mut serial = Uart::new(uart0, clocks);
     serial.listen_rx_fifo_full();
     interrupt::enable(Interrupt::UART0, Priority::Priority1).unwrap();
 
