@@ -2,22 +2,22 @@
 #![no_std]
 
 #[cfg(feature = "dprint")]
-use flasher_stub::hal::{
-    gpio::IO,
-    uart::{
-        config::{Config, DataBits, Parity, StopBits},
-        TxRxPins,
-    },
-};
+use flasher_stub::hal::gpio::IO;
 use flasher_stub::{
     dprintln,
     hal::{
         clock::{ClockControl, Clocks},
         entry,
-        interrupt::{self, Priority},
-        peripherals::{self, Interrupt, Peripherals},
+        gpio,
+        peripherals::{self, Peripherals},
         prelude::*,
-        Uart,
+        uart::{
+            config::{Config, DataBits, Parity, StopBits},
+            ClockSource,
+            TxRxPins,
+            Uart,
+        },
+        Blocking,
     },
     protocol::Stub,
     targets,
@@ -49,17 +49,13 @@ fn main() -> ! {
     #[cfg(feature = "dprint")]
     let _ = Uart::new_with_config(
         peripherals.UART1,
-        Config {
-            baudrate: 115_200,
-            data_bits: DataBits::DataBits8,
-            parity: Parity::ParityNone,
-            stop_bits: StopBits::STOP1,
-        },
+        Config::default(),
         Some(TxRxPins::new_tx_rx(
             io.pins.gpio2.into_push_pull_output(),
             io.pins.gpio0.into_floating_input(),
         )),
         &clocks,
+        None,
     );
 
     // Detect the transport method being used, and configure/initialize the
@@ -97,11 +93,29 @@ fn main() -> ! {
 
 // Initialize the UART0 peripheral as the `Transport`.
 fn transport_uart(uart0: peripherals::UART0, clocks: &Clocks<'_>) -> Transport {
-    let mut serial = Uart::new(uart0, clocks);
-    serial.listen_rx_fifo_full();
-    interrupt::enable(Interrupt::UART0, Priority::Priority1).unwrap();
+    let uart_config = Config {
+        baudrate: 115200,
+        data_bits: DataBits::DataBits8,
+        parity: Parity::ParityNone,
+        stop_bits: StopBits::STOP1,
+        #[cfg(not(any(feature = "esp32", feature = "esp32s2")))]
+        clock_source: ClockSource::Xtal,
+        #[cfg(any(feature = "esp32", feature = "esp32s2"))]
+        clock_source: ClockSource::Apb,
+    };
 
-    static mut TRANSPORT: StaticCell<Uart<'static, peripherals::UART0>> = StaticCell::new();
+    let mut serial = Uart::new_with_config(
+        uart0,
+        uart_config,
+        None::<TxRxPins<gpio::NoPinType, gpio::NoPinType>>,
+        clocks,
+        Some(flasher_stub::io::uart::uart0_handler),
+    );
+
+    serial.listen_rx_fifo_full();
+
+    static mut TRANSPORT: StaticCell<Uart<'static, peripherals::UART0, Blocking>> =
+        StaticCell::new();
 
     Transport::Uart(unsafe { TRANSPORT.init(serial) })
 }
@@ -109,13 +123,15 @@ fn transport_uart(uart0: peripherals::UART0, clocks: &Clocks<'_>) -> Transport {
 // Initialize the USB Serial JTAG peripheral as the `Transport`.
 #[cfg(usb_device)]
 fn transport_usb_serial_jtag(usb_device: peripherals::USB_DEVICE) -> Transport {
-    use flasher_stub::hal::UsbSerialJtag;
+    use flasher_stub::hal::usb_serial_jtag::UsbSerialJtag;
 
-    let mut usb_serial = UsbSerialJtag::new(usb_device);
+    let mut usb_serial = UsbSerialJtag::new(
+        usb_device,
+        Some(flasher_stub::io::usb_serial_jtag::usb_device_handler),
+    );
     usb_serial.listen_rx_packet_recv_interrupt();
-    interrupt::enable(Interrupt::USB_DEVICE, Priority::Priority1).unwrap();
 
-    static mut TRANSPORT: StaticCell<UsbSerialJtag<'static>> = StaticCell::new();
+    static mut TRANSPORT: StaticCell<UsbSerialJtag<'static, Blocking>> = StaticCell::new();
 
     Transport::UsbSerialJtag(unsafe { TRANSPORT.init(usb_serial) })
 }
