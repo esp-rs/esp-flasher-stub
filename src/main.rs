@@ -109,7 +109,7 @@ fn transport_uart(uart0: peripherals::UART0, clocks: &Clocks<'_>) -> Transport {
         uart_config,
         None::<TxRxPins<gpio::NoPinType, gpio::NoPinType>>,
         clocks,
-        Some(flasher_stub::io::uart::uart0_hanlder),
+        Some(flasher_stub::io::uart::uart0_handler),
     );
 
     serial.listen_rx_fifo_full();

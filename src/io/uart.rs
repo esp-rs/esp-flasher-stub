@@ -28,7 +28,7 @@ where
 impl<T> UartMarker for Uart<'_, T, Blocking> where T: Instance {}
 
 #[handler]
-pub fn uart0_hanlder() {
+pub fn uart0_handler() {
     let uart = unsafe { &*UART0::ptr() };
 
     while uart.status().read().rxfifo_cnt().bits() > 0 {
