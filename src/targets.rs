@@ -243,12 +243,6 @@ pub trait EspCommon {
         }
     }
 
-    #[cfg(any(feature = "esp32c6", feature = "esp32h2"))]
-    fn get_security_info(&self) -> Result<[u8; SECURITY_INFO_BYTES], Error> {
-        Err(Error::InvalidCommand)
-    }
-
-    #[cfg(not(any(feature = "esp32c6", feature = "esp32h2")))]
     fn get_security_info(&self) -> Result<[u8; SECURITY_INFO_BYTES], Error> {
         let mut buf: [u8; SECURITY_INFO_BYTES] = [0; SECURITY_INFO_BYTES];
 
