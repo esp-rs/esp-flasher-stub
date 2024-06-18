@@ -47,6 +47,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: cargo check
         run: cargo check -Zbuild-std=core --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }}
+      - name: build & wrap (${{ matrix.build.chip }})
+        working-directory: xtask
+        run: cargo run -- wrap ${{ matrix.build.chip }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.build.chip }} stub JSON
+          path: ${{ matrix.build.chip }}.json
+
 
   check-xtensa:
     runs-on: ubuntu-latest
@@ -71,6 +79,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: cargo check
         run: cargo check -Zbuild-std=core --target=${{ matrix.build.target }} --features=${{ matrix.build.chip }}
+      - name: build & wrap (${{ matrix.build.chip }})
+        working-directory: xtask
+        run: cargo run -- wrap ${{ matrix.build.chip }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.build.chip }} stub JSON
+          path: ${{ matrix.build.chip }}.json
 
   # --------------------------------------------------------------------------
   # Formatting & Clippy
