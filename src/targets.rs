@@ -110,6 +110,7 @@ pub trait EspCommon {
     const SPI0_EXT2_REG: u32 = Self::SPI0_BASE_REG + 0x54;
     const UART_BASE_REG: u32 = 0x60000000;
     const GPIO_BASE_REG: u32 = 0x60004000;
+    const IO_MUX_BASE: u32 = 0x60009000;
 
     const SPI_CMD_REG: u32 = Self::SPI_BASE_REG;
     const SPI_ADDR_REG: u32 = Self::SPI_BASE_REG + 0x04;
@@ -135,6 +136,12 @@ pub trait EspCommon {
 
     const SECURITY_INFO_BYTES: usize = 20;
 
+    const PERIPHS_IO_MUX_SPICLK_U: u32 = Self::IO_MUX_BASE + 0x7c;
+    const PERIPHS_IO_MUX_SPIQ_U: u32 = Self::IO_MUX_BASE + 0x80;
+    const PERIPHS_IO_MUX_SPID_U: u32 = Self::IO_MUX_BASE + 0x84;
+    const PERIPHS_IO_MUX_SPICS0_U: u32 = Self::IO_MUX_BASE + 0x78;
+    const FUNC_GPIO: u32 = 1;
+
     fn get_uart_div(&self, current_baud: u32, new_baud: u32) -> u32 {
         let clock_div_reg = self.read_register(Self::UART0_CLKDIV_REG);
         let uart_div = clock_div_reg & Self::UART_CLKDIV_M;
@@ -153,6 +160,12 @@ pub trait EspCommon {
 
     fn set_register_mask(&self, address: u32, mask: u32) {
         self.write_register(address, self.read_register(address) | mask);
+    }
+
+    fn set_register_field(&self, register: u32, mask: u32, shift: u32, value: u32) {
+        let new_value =
+            (self.read_register(register) & !(mask << shift)) | ((value & mask) << shift);
+        self.write_register(register, new_value);
     }
 
     fn spiflash_write(&self, dest_addr: u32, data: *const u8, len: u32) -> Result<(), Error> {
@@ -176,6 +189,16 @@ pub trait EspCommon {
     }
 
     fn spi_attach(&self, param: u32) {
+        // Stub calls spi_attach automatically when it boots, therefore, we need to
+        // detach the flash before attaching again with different
+        // configuration to avoid issues.
+
+        // Configure the SPI flash pins back as classic GPIOs
+        self.set_register_field(Self::PERIPHS_IO_MUX_SPICLK_U, 0x7, 12, Self::FUNC_GPIO);
+        self.set_register_field(Self::PERIPHS_IO_MUX_SPIQ_U, 0x7, 12, Self::FUNC_GPIO);
+        self.set_register_field(Self::PERIPHS_IO_MUX_SPID_U, 0x7, 12, Self::FUNC_GPIO);
+        self.set_register_field(Self::PERIPHS_IO_MUX_SPICS0_U, 0x7, 12, Self::FUNC_GPIO);
+
         unsafe { esp_rom_spiflash_attach(param, false) };
     }
 
@@ -353,6 +376,13 @@ impl EspCommon for Esp32 {
     const SPI0_EXT2_REG: u32 = Self::SPI0_BASE_REG + 0xF8;
     const UART_BASE_REG: u32 = 0x3ff40000;
     const GPIO_BASE_REG: u32 = 0x3ff44000;
+    const IO_MUX_BASE: u32 = 0x3ff49000;
+
+    const PERIPHS_IO_MUX_SPICLK_U: u32 = Self::IO_MUX_BASE + 0x60;
+    const PERIPHS_IO_MUX_SPIQ_U: u32 = Self::IO_MUX_BASE + 0x68;
+    const PERIPHS_IO_MUX_SPID_U: u32 = Self::IO_MUX_BASE + 0x64;
+    const PERIPHS_IO_MUX_SPICS0_U: u32 = Self::IO_MUX_BASE + 0x5c;
+    const FUNC_GPIO: u32 = 2;
 
     fn get_security_info(&self) -> Result<[u8; SECURITY_INFO_BYTES], Error> {
         Err(InvalidCommand)
@@ -387,12 +417,45 @@ impl EspCommon for Esp32 {
     }
 }
 
-impl EspCommon for Esp32s2 {}
-impl EspCommon for Esp32s3 {}
-impl EspCommon for Esp32c3 {}
-impl EspCommon for Esp32c2 {}
-impl EspCommon for Esp32c6 {}
-impl EspCommon for Esp32h2 {}
+impl EspCommon for Esp32s2 {
+    const SECURITY_INFO_BYTES: usize = 12;
+    const IO_MUX_BASE: u32 = 0x3f409000;
+
+    const PERIPHS_IO_MUX_SPICLK_U: u32 = Self::IO_MUX_BASE + 0x7c;
+    const PERIPHS_IO_MUX_SPIQ_U: u32 = Self::IO_MUX_BASE + 0x80;
+    const PERIPHS_IO_MUX_SPID_U: u32 = Self::IO_MUX_BASE + 0x84;
+    const PERIPHS_IO_MUX_SPICS0_U: u32 = Self::IO_MUX_BASE + 0x78;
+}
+impl EspCommon for Esp32s3 {
+    const PERIPHS_IO_MUX_SPICLK_U: u32 = Self::IO_MUX_BASE + 0x7c;
+    const PERIPHS_IO_MUX_SPIQ_U: u32 = Self::IO_MUX_BASE + 0x80;
+    const PERIPHS_IO_MUX_SPID_U: u32 = Self::IO_MUX_BASE + 0x84;
+    const PERIPHS_IO_MUX_SPICS0_U: u32 = Self::IO_MUX_BASE + 0x78;
+}
+impl EspCommon for Esp32c3 {
+    const PERIPHS_IO_MUX_SPICLK_U: u32 = Self::IO_MUX_BASE + 0x40;
+    const PERIPHS_IO_MUX_SPIQ_U: u32 = Self::IO_MUX_BASE + 0x48;
+    const PERIPHS_IO_MUX_SPID_U: u32 = Self::IO_MUX_BASE + 0x44;
+    const PERIPHS_IO_MUX_SPICS0_U: u32 = Self::IO_MUX_BASE + 0x3c;
+}
+impl EspCommon for Esp32c2 {
+    const PERIPHS_IO_MUX_SPICLK_U: u32 = Self::IO_MUX_BASE + 0x40;
+    const PERIPHS_IO_MUX_SPIQ_U: u32 = Self::IO_MUX_BASE + 0x48;
+    const PERIPHS_IO_MUX_SPID_U: u32 = Self::IO_MUX_BASE + 0x44;
+    const PERIPHS_IO_MUX_SPICS0_U: u32 = Self::IO_MUX_BASE + 0x3c;
+}
+impl EspCommon for Esp32c6 {
+    const PERIPHS_IO_MUX_SPICLK_U: u32 = Self::IO_MUX_BASE + 0x78;
+    const PERIPHS_IO_MUX_SPIQ_U: u32 = Self::IO_MUX_BASE + 0x68;
+    const PERIPHS_IO_MUX_SPID_U: u32 = Self::IO_MUX_BASE + 0x7c;
+    const PERIPHS_IO_MUX_SPICS0_U: u32 = Self::IO_MUX_BASE + 0x64;
+}
+impl EspCommon for Esp32h2 {
+    const PERIPHS_IO_MUX_SPICLK_U: u32 = Self::IO_MUX_BASE + 0x50;
+    const PERIPHS_IO_MUX_SPIQ_U: u32 = Self::IO_MUX_BASE + 0x44;
+    const PERIPHS_IO_MUX_SPID_U: u32 = Self::IO_MUX_BASE + 0x54;
+    const PERIPHS_IO_MUX_SPICS0_U: u32 = Self::IO_MUX_BASE + 0x40;
+}
 
 pub trait EspUsbSerialJtagId {
     /// The ID returned for USB_SERIAL_JTAG from `esp_flasher_rom_get_uart`
