@@ -34,3 +34,6 @@ codegen-units = 1
 lto           = true
 panic         = "abort"
 debug         = true
+
+[lints.rust]
+unexpected_cfgs = "allow"
