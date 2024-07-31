@@ -4,7 +4,7 @@
 ![MSRV](https://img.shields.io/badge/MSRV-1.76-blue?labelColor=1C2C2E&logo=Rust&style=flat-square)
 [![Matrix](https://img.shields.io/matrix/esp-rs:matrix.org?label=join%20matrix&color=BEC5C9&labelColor=1C2C2E&logo=matrix&style=flat-square)](https://matrix.to/#/#esp-rs:matrix.org)
 
-Rust implementation of flasher stub located in [esptool](https://github.com/espressif/esptool/).
+Rust implementation of the [esptool flasher stub](https://github.com/espressif/esptool-legacy-flasher-stub/).
 
 Supports the ESP32, ESP32-C2/C3/C6, ESP32-H2, and ESP32-S2/S3. Currently, `UART` and `USB Serial JTAG` are the supported transport modes, and support for other modes is planned.
 
@@ -64,9 +64,10 @@ In order to run `test_esptool.py` follow steps below:
   ```
 - Copy the stub JSON files into `esptool` installation. You can use the following one-liner:
   ```bash
-  for n in esp*.json; do cp $n $ESPTOOL_PATH/esptool/targets/stub_flasher/stub_flasher_${n#esp}; done
+  for n in esp*.json; do cp $n $ESPTOOL_PATH/esptool/targets/stub_flasher/2/$n; done
   ```
   where `ESPTOOL_PATH` is set to the location where you have cloned `esptool`.
+- Set `ESPTOOL_STUB_VERSION` environment variable to `2`.
 - Run tests
   ```bash
   cd $ESPTOOL_PATH/test
