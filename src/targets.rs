@@ -17,7 +17,7 @@ struct RomSpiFlashChip {
 
 // ROM SPIFLASH functions can be found here:
 // https://github.com/espressif/esp-idf/tree/master/components/esp_rom or
-// https://github.com/espressif/esptool/tree/master/flasher_stub/ld
+// https://github.com/espressif/esptool-legacy-flasher-stub/tree/master/flasher_stub/ld
 #[allow(unused)]
 extern "C" {
     fn esp_rom_spiflash_erase_chip() -> i32;

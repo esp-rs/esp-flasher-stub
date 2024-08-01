@@ -126,7 +126,7 @@ impl<T: InputIO> Stub<T> {
     }
 
     fn process_begin(&mut self, cmd: &BeginCommand) -> Result<(), Error> {
-        // Align erase addreess to sector boundady.
+        // Align erase address to sector boundary.
         self.erase_addr = cmd.offset & FLASH_SECTOR_MASK;
         self.write_addr = cmd.offset;
         self.end_addr = cmd.offset + cmd.total_size;
