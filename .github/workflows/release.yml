@@ -33,7 +33,7 @@ jobs:
         if: matrix.build.chip != 'esp32' && matrix.build.chip != 'esp32s2' && matrix.build.chip != 'esp32s3'
         with:
           target: ${{ matrix.build.target }}
-          toolchain: stable
+          toolchain: nightly
           components: rust-src
       # Xtensa toolchain
       - uses: esp-rs/xtensa-toolchain@v1.5

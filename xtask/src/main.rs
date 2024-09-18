@@ -28,7 +28,7 @@ impl Chip {
     pub fn toolchain(&self) -> &'static str {
         match self {
             Chip::Esp32 | Chip::Esp32s2 | Chip::Esp32s3 => "+esp",
-            _ => "+stable",
+            _ => "+nightly",
         }
     }
 
