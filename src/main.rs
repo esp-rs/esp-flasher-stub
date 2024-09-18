@@ -7,17 +7,22 @@ use flasher_stub::{
     dprintln,
     hal::{
         clock::{ClockControl, Clocks},
-        entry, gpio,
+        entry,
+        gpio,
         peripherals::{self, Peripherals},
         prelude::*,
         uart::{
             config::{Config, DataBits, Parity, StopBits},
-            ClockSource, TxRxPins, Uart,
+            ClockSource,
+            TxRxPins,
+            Uart,
         },
         Blocking,
     },
     protocol::Stub,
-    targets, Transport, TransportMethod,
+    targets,
+    Transport,
+    TransportMethod,
 };
 use static_cell::StaticCell;
 

@@ -25,16 +25,16 @@ In order to build the flasher stub manually, you must specify the appropriate to
 cargo +esp build --release --features=esp32 --target=xtensa-esp32-none-elf
 
 # ESP32-C2
-cargo +stable build --release --features=esp32c2 --target=riscv32imc-unknown-none-elf
+cargo +nightly build --release --features=esp32c2 --target=riscv32imc-unknown-none-elf
 
 # ESP32-C3
-cargo +stable build --release --features=esp32c3 --target=riscv32imc-unknown-none-elf
+cargo +nightly build --release --features=esp32c3 --target=riscv32imc-unknown-none-elf
 
 # ESP32-C6
-cargo +stable build --release --features=esp32c6 --target=riscv32imac-unknown-none-elf
+cargo +nightly build --release --features=esp32c6 --target=riscv32imac-unknown-none-elf
 
 # ESP32-H2
-cargo +stable build --release --features=esp32h2 --target=riscv32imac-unknown-none-elf
+cargo +nightly build --release --features=esp32h2 --target=riscv32imac-unknown-none-elf
 
 # ESP32-S2
 cargo +esp build --release --features=esp32s2 --target=xtensa-esp32s2-none-elf
