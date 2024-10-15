@@ -50,7 +50,10 @@ extern "C" {
     fn spi_read_status_high(status: *const u32) -> u32;
 }
 
+#[cfg(not(feature = "esp32s2"))]
 const SECURITY_INFO_BYTES: usize = 20;
+#[cfg(feature = "esp32s2")]
+const SECURITY_INFO_BYTES: usize = 12;
 
 pub const FLASH_SECTOR_SIZE: u32 = 4096;
 pub const FLASH_BLOCK_SIZE: u32 = 65536;
